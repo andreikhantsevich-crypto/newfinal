@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="b1808caa-652e-433a-9a34-48e0575c138a" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.idea/partner_primary_express_project.code-workspace" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/.idea/partner_primary_express_project.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/__manifest__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/models/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/models/account_analytic_line.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/models/res_partner.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/models/res_partner_bank.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/models/sale_order.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/models/sale_order_line.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/reports/print_button_order_fix.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/reports/sale_order_report.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/reports/sale_order_report_template.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/security/ir.model.access.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/tests/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/tests/test_express_delivery_scenario.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/tests/test_report_printform.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/tests/test_res_partner.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/tests/test_sale_order.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/account_analytic_line_views.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/res_partner_bank_views.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/res_partner_contact_views.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/res_partner_kanban_views.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/res_partner_views.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/sale_order_views.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/views/sale_portal_templates.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/wizards/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/wizards/sale_order_line_split_wizard.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../partner_primary_express_project/partner_primary_express/wizards/sale_order_line_split_wizard_views.xml" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 6
+}]]></component>
+  <component name="ProjectId" id="35DII6Lp0ISQTQBrP8hWFT4h5Fh" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/admin/models (Copy 2)/my_custom_model"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-f69e5c277ee4-cbfc7b97e6b2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-252.27397.106" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b1808caa-652e-433a-9a34-48e0575c138a" name="Changes" comment="" />
+      <created>1762638134871</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1762638134871</updated>
+    </task>
+    <servers />
+  </component>
+</project>

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_final_sport_center_form" model="ir.ui.view">
+            <field name="name">final.sport.center.form</field>
+            <field name="model">final.sport.center</field>
+            <field name="arch" type="xml">
+                <form string="Спортивный центр">
+                    <header>
+                        <button name="action_open_tennis_courts"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-th"
+                                invisible="not id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="tennis_court_count" widget="statinfo"/>
+                                </span>
+                                <span class="o_stat_text">Теннисные корты</span>
+                            </div>
+                        </button>
+                    </header>
+                    <sheet>
+                        <group col="4" class="o_group_narrow">
+                            <field name="name" class="oe_inline"/>
+                            <field name="manager_name" required="1"/>
+                            <field name="manager_login" required="1"/>
+                            <field name="manager_email"/>
+                            <field name="manager_password"
+                                   password="True"
+                                   modifiers="{'required': [('id', '=', False)]}"/>
+                        </group>
+                        <group col="4" class="o_group_narrow">
+                            <field name="work_time_start" class="oe_inline"/>
+                            <field name="work_time_end" class="oe_inline"/>
+                        </group>
+                        <group col="2">
+                            <group string="Тренировки">
+                                <field name="individual_price"/>
+                                <field name="split_price"/>
+                                <field name="group_price"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Тренеры">
+                                <field name="trainer_ids"
+                                       mode="list"
+                                       readonly="1">
+                                    <list string="Тренеры">
+                                        <field name="employee_id" string="Имя"/>
+                                        <field name="individual_rate" string="Ставка за индивидуальную"/>
+                                        <field name="split_rate" string="Ставка за сплит"/>
+                                        <field name="group_rate" string="Ставка за групповую"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Клиенты">
+                                <field name="client_ids" 
+                                       mode="list"
+                                       readonly="1">
+                                    <list string="Клиенты">
+                                        <field name="name"/>
+                                        <field name="email"/>
+                                        <field name="phone"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Теннисные корты">
+                                <field name="tennis_court_ids"
+                                       mode="list"
+                                       readonly="1">
+                                    <list string="Теннисные корты">
+                                        <field name="name"/>
+                                        <field name="work_time_start"/>
+                                        <field name="work_time_end"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_create_sport_center" model="ir.actions.act_window">
+            <field name="name">Создать СЦ</field>
+            <field name="res_model">final.sport.center</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_final_sport_center_form"/>
+            <field name="target">current</field>
+        </record>
+
+        <record id="view_final_sport_center_list" model="ir.ui.view">
+            <field name="name">final.sport.center.list</field>
+            <field name="model">final.sport.center</field>
+            <field name="arch" type="xml">
+                <list string="Спортивные центры" create="1">
+                    <field name="name"/>
+                    <field name="manager_name"/>
+                    <field name="work_time_start"/>
+                    <field name="work_time_end"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="action_final_sport_center" model="ir.actions.act_window">
+            <field name="name">Спортивные центры</field>
+            <field name="res_model">final.sport.center</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_final_sport_center_list"/>
+            <field name="views" eval="[(ref('view_final_sport_center_list'), 'list'), (ref('view_final_sport_center_form'), 'form')]"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Создайте спортивный центр, назначьте менеджера, настройте рабочих тренеров и корты.
+                </p>
+            </field>
+        </record>
+
+        <!-- Представление формы для менеджера -->
+        <record id="view_final_sport_center_form_manager" model="ir.ui.view">
+            <field name="name">final.sport.center.form.manager</field>
+            <field name="model">final.sport.center</field>
+            <field name="arch" type="xml">
+                <form string="Спортивный центр">
+                    <sheet>
+                        <group col="4" class="o_group_narrow">
+                            <field name="name" readonly="1"/>
+                            <field name="manager_name" readonly="1"/>
+                            <field name="work_time_start" readonly="1"/>
+                            <field name="work_time_end" readonly="1"/>
+                            <field name="tennis_court_count" readonly="1" string="Количество кортов"/>
+                        </group>
+                        <notebook>
+                            <page string="Тренеры">
+                                <field name="trainer_ids"
+                                       mode="list"
+                                       readonly="1">
+                                    <list string="Тренеры">
+                                        <field name="employee_id" string="Имя"/>
+                                        <field name="individual_rate" string="Ставка за индивидуальную"/>
+                                        <field name="split_rate" string="Ставка за сплит"/>
+                                        <field name="group_rate" string="Ставка за групповую"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Клиенты">
+                                <field name="client_ids" 
+                                       mode="list"
+                                       readonly="1">
+                                    <list string="Клиенты">
+                                        <field name="name"/>
+                                        <field name="email"/>
+                                        <field name="phone"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Теннисные корты">
+                                <field name="tennis_court_ids"
+                                       mode="list,form"
+                                       context="{'default_sport_center_id': id}">
+                                    <list string="Теннисные корты" create="1">
+                                        <field name="name"/>
+                                        <field name="work_time_start"/>
+                                        <field name="work_time_end"/>
+                                    </list>
+                                    <form string="Теннисный корт">
+                                        <sheet>
+                                            <group col="4" class="o_group_narrow">
+                                                <field name="name" class="oe_inline"/>
+                                                <field name="sport_center_id" required="1" readonly="1"/>
+                                            </group>
+                                            <group col="4" class="o_group_narrow">
+                                                <field name="work_time_start" class="oe_inline"/>
+                                                <field name="work_time_end" class="oe_inline"/>
+                                            </group>
+                                        </sheet>
+                                    </form>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Удаляем старое действие act_window если оно существует -->
+        <delete id="action_final_sport_center_manager" model="ir.actions.act_window"/>
+        
+        <!-- Действие для менеджера - открывает форму напрямую через серверное действие -->
+        <record id="action_final_sport_center_manager" model="ir.actions.server">
+            <field name="name">Мой спортивный центр</field>
+            <field name="model_id" ref="final.model_final_sport_center"/>
+            <field name="state">code</field>
+            <field name="code">action = model.action_open_manager_center()</field>
+        </record>
+
+        <record id="view_final_tennis_court_list" model="ir.ui.view">
+            <field name="name">final.tennis.court.list</field>
+            <field name="model">final.tennis.court</field>
+            <field name="arch" type="xml">
+                <list string="Теннисные корты">
+                    <field name="name"/>
+                    <field name="sport_center_id"/>
+                    <field name="work_time_start"/>
+                    <field name="work_time_end"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_final_tennis_court_form" model="ir.ui.view">
+            <field name="name">final.tennis.court.form</field>
+            <field name="model">final.tennis.court</field>
+            <field name="arch" type="xml">
+                <form string="Теннисный корт">
+                    <sheet>
+                        <group col="4" class="o_group_narrow">
+                            <field name="name" class="oe_inline"/>
+                            <field name="sport_center_id" required="1"/>
+                        </group>
+                        <group col="4" class="o_group_narrow">
+                            <field name="work_time_start" class="oe_inline"/>
+                            <field name="work_time_end" class="oe_inline"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_final_tennis_court" model="ir.actions.act_window">
+            <field name="name">Теннисные корты</field>
+            <field name="res_model">final.tennis.court</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_final_tennis_court_list"/>
+            <field name="views" eval="[(ref('view_final_tennis_court_list'), 'list'), (ref('view_final_tennis_court_form'), 'form')]"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Создайте теннисный корт с рабочим временем и доступными видами тренировок.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+

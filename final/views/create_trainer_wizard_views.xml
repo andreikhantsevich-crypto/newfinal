@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_create_trainer_wizard_form" model="ir.ui.view">
+            <field name="name">final.create.trainer.wizard.form</field>
+            <field name="model">final.create.trainer.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Создать тренера">
+                    <sheet>
+                        <group col="2">
+                            <field name="trainer_name" required="1"/>
+                            <field name="trainer_login" required="1"/>
+                            <field name="trainer_email"/>
+                            <field name="trainer_password" password="True" required="1"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_create_trainer"
+                                string="Создать"
+                                type="object"
+                                class="btn-primary"/>
+                        <button string="Отмена"
+                                class="btn-secondary"
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_create_trainer_wizard" model="ir.actions.act_window">
+            <field name="name">Создать тренера</field>
+            <field name="res_model">final.create.trainer.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="view_id" ref="view_create_trainer_wizard_form"/>
+        </record>
+    </data>
+</odoo>
+
+

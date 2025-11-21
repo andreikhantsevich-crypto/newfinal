@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_hr_employee_form_inherit_final" model="ir.ui.view">
+            <field name="name">hr.employee.form.inherit.final</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet/group/group" position="after">
+                    <group string="Спортивный центр">
+                        <field name="sport_center_id" readonly="1"/>
+                        <field name="is_final_trainer" readonly="1"/>
+                        <field name="is_final_manager" readonly="1"/>
+                        <field name="trainer_center_ids" widget="many2many_tags" readonly="1"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_hr_employee_tree_inherit_final" model="ir.ui.view">
+            <field name="name">hr.employee.tree.inherit.final</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//list[@js_class='hr_employee_list']" position="inside">
+                    <field name="sport_center_id" readonly="1"/>
+                    <field name="is_final_trainer" readonly="1"/>
+                    <field name="is_final_manager" readonly="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- View для списка тренеров -->
+        <record id="view_final_trainer_list" model="ir.ui.view">
+            <field name="name">final.trainer.list</field>
+            <field name="model">hr.employee</field>
+            <field name="arch" type="xml">
+                <list string="Тренеры" create="0">
+                    <field name="name"/>
+                    <field name="work_email"/>
+                    <field name="trainer_center_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="is_final_trainer" invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_final_trainer_search" model="ir.ui.view">
+            <field name="name">final.trainer.search</field>
+            <field name="model">hr.employee</field>
+            <field name="arch" type="xml">
+                <search string="Тренеры">
+                    <field name="name"/>
+                    <field name="work_email"/>
+                    <field name="trainer_center_ids"/>
+                    <filter name="trainers" string="Тренеры" domain="[('is_final_trainer', '=', True)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_final_trainer_list" model="ir.actions.act_window">
+            <field name="name">Тренеры</field>
+            <field name="res_model">hr.employee</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('is_final_trainer', '=', True)]</field>
+            <field name="view_id" ref="view_final_trainer_list"/>
+            <field name="search_view_id" ref="view_final_trainer_search"/>
+            <field name="context">{'search_default_trainers': 1, 'default_is_final_trainer': True}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Создайте тренера через меню "Создать Тренера" или добавьте его к спортивному центру.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+

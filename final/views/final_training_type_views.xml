@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_final_training_type_list" model="ir.ui.view">
+            <field name="name">final.training.type.list</field>
+            <field name="model">final.training.type</field>
+            <field name="arch" type="xml">
+                <list string="Виды тренировок">
+                    <field name="sequence"/>
+                    <field name="name"/>
+                    <field name="code"/>
+                    <field name="min_clients"/>
+                    <field name="max_clients"/>
+                    <field name="trainer_count"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_final_training_type_form" model="ir.ui.view">
+            <field name="name">final.training.type.form</field>
+            <field name="model">final.training.type</field>
+            <field name="arch" type="xml">
+                <form string="Вид тренировки">
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="min_clients"/>
+                            <field name="max_clients"/>
+                            <field name="trainer_count"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="description"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_final_training_type" model="ir.actions.act_window">
+            <field name="name">Виды тренировок</field>
+            <field name="res_model">final.training.type</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_final_training_type_list"/>
+            <field name="views" eval="[(ref('view_final_training_type_list'), 'list'), (ref('view_final_training_type_form'), 'form')]"/>
+        </record>
+    </data>
+</odoo>
+
+

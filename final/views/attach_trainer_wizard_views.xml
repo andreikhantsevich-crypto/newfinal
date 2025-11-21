@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_attach_trainer_wizard_form" model="ir.ui.view">
+            <field name="name">final.attach.trainer.wizard.form</field>
+            <field name="model">final.attach.trainer.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Привязать к спортивному центру">
+                    <sheet>
+                        <group>
+                            <field name="center_id" 
+                                   options="{'no_open': True, 'no_create': True}"
+                                   required="1"/>
+                            <field name="already_attached_center_ids" 
+                                   widget="many2many_tags" 
+                                   readonly="1"
+                                   invisible="not already_attached_center_ids"
+                                   string="Уже привязанные центры"/>
+                        </group>
+                        <group string="Ставки за час тренировки" col="3">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="individual_rate" required="1"/>
+                            <field name="split_rate" required="1"/>
+                            <field name="group_rate" required="1"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_attach_trainer"
+                                string="Привязать"
+                                type="object"
+                                class="btn-primary"/>
+                        <button string="Отмена"
+                                class="btn-secondary"
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_attach_trainer_wizard" model="ir.actions.act_window">
+            <field name="name">Привязать к спортивному центру</field>
+            <field name="res_model">final.attach.trainer.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="view_id" ref="view_attach_trainer_wizard_form"/>
+        </record>
+    </data>
+</odoo>
+

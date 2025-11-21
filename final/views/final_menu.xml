@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Корневое меню для директора и менеджера -->
+        <menuitem id="menu_final_root"
+                  name="Final"
+                  sequence="10"
+                  web_icon="base,static/description/icon.png"
+                  groups="final.group_final_director,final.group_final_manager"/>
+        <record id="menu_final_root" model="ir.ui.menu">
+            <field name="action" eval="False"/>
+        </record>
+        
+        <!-- Корневое меню для тренера -->
+        <menuitem id="menu_final_root_trainer"
+                  name="Final"
+                  sequence="10"
+                  web_icon="base,static/description/icon.png"
+                  groups="final.group_final_trainer"/>
+        <record id="menu_final_root_trainer" model="ir.ui.menu">
+            <field name="action" ref="action_trainer_cabinet_sport_center"/>
+        </record>
+        <menuitem id="menu_final_orders"
+                  name="Спортивные центры"
+                  parent="menu_final_root"
+                  action="action_final_sport_center"
+                  sequence="10"
+                  groups="final.group_final_director"/>
+        
+        <!-- Явно обновляем меню, чтобы скрыть его для менеджера -->
+        <record id="menu_final_orders" model="ir.ui.menu">
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_director')])]"/>
+        </record>
+        
+        <menuitem id="menu_final_orders_manager"
+                  name="Мой спортивный центр"
+                  parent="menu_final_root"
+                  action="action_final_sport_center_manager"
+                  sequence="5"
+                  groups="final.group_final_manager"/>
+        <menuitem id="menu_final_tennis_courts"
+                  name="Теннисные корты"
+                  parent="menu_final_root"
+                  action="action_final_tennis_court"
+                  sequence="15"
+                  groups="final.group_final_director,final.group_final_manager"/>
+        <menuitem id="menu_final_training_types"
+                  name="Виды тренировок"
+                  parent="menu_final_root"
+                  action="action_final_training_type"
+                  sequence="20"
+                  groups="final.group_final_director"/>
+        <menuitem id="menu_final_trainers"
+                  name="Тренеры"
+                  parent="menu_final_root"
+                  action="action_final_trainer_list"
+                  sequence="25"
+                  groups="final.group_final_director"/>
+        <menuitem id="menu_final_create_trainer"
+                  name="Создать Тренера"
+                  parent="menu_final_root"
+                  action="action_create_trainer_wizard"
+                  sequence="26"
+                  groups="final.group_final_director"/>
+        <menuitem id="menu_final_trainer_sport_centers"
+                  name="Спортивные центры"
+                  parent="menu_final_root"
+                  action="action_trainer_cabinet_sport_center"
+                  sequence="1"
+                  groups="final.group_final_trainer"/>
+        <menuitem id="menu_final_trainer_schedule"
+                  name="Расписание"
+                  parent="menu_final_root"
+                  action="action_final_trainer_schedule"
+                  sequence="2"
+                  groups="final.group_final_trainer,final.group_final_director"/>
+        <menuitem id="menu_final_trainer_rates"
+                  name="Ставки"
+                  parent="menu_final_root"
+                  action="action_final_trainer_rate"
+                  sequence="3"
+                  groups="final.group_final_trainer,final.group_final_director"/>
+    </data>
+</odoo>
+

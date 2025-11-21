@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="final_training_type_individual" model="final.training.type">
+        <field name="name">Индивидуальная тренировка</field>
+        <field name="code">individual</field>
+        <field name="sequence">10</field>
+        <field name="min_clients">1</field>
+        <field name="max_clients">1</field>
+        <field name="trainer_count">1</field>
+        <field name="description">Тренер и один клиент.</field>
+    </record>
+
+    <record id="final_training_type_split" model="final.training.type">
+        <field name="name">Сплит тренировка</field>
+        <field name="code">split</field>
+        <field name="sequence">20</field>
+        <field name="min_clients">2</field>
+        <field name="max_clients">2</field>
+        <field name="trainer_count">1</field>
+        <field name="description">Тренер и два клиента.</field>
+    </record>
+
+    <record id="final_training_type_group" model="final.training.type">
+        <field name="name">Групповая тренировка</field>
+        <field name="code">group</field>
+        <field name="sequence">30</field>
+        <field name="min_clients">3</field>
+        <field name="max_clients">5</field>
+        <field name="trainer_count">1</field>
+        <field name="description">Тренер и от трёх до пяти клиентов.</field>
+    </record>
+</odoo>
+
+

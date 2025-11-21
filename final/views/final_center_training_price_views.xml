@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_final_center_training_price_list" model="ir.ui.view">
+            <field name="name">final.center.training.price.list</field>
+            <field name="model">final.center.training.price</field>
+            <field name="arch" type="xml">
+                <list string="Цены на тренировки">
+                    <field name="center_id"/>
+                    <field name="training_type_id"/>
+                    <field name="price_per_hour"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_final_center_training_price_form" model="ir.ui.view">
+            <field name="name">final.center.training.price.form</field>
+            <field name="model">final.center.training.price</field>
+            <field name="arch" type="xml">
+                <form string="Цена тренировки">
+                    <sheet>
+                        <group col="2">
+                            <field name="center_id"
+                                   options="{'no_open': True, 'no_create': True}"
+                                   required="1"/>
+                            <field name="training_type_id"
+                                   options="{'no_open': True, 'no_create': True}"
+                                   required="1"/>
+                            <field name="price_per_hour" required="1"/>
+                            <field name="currency_id" readonly="1"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_final_center_training_price" model="ir.actions.act_window">
+            <field name="name">Цены на тренировки</field>
+            <field name="res_model">final.center.training.price</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_final_center_training_price_list"/>
+            <field name="views" eval="[(ref('view_final_center_training_price_list'), 'list'), (ref('view_final_center_training_price_form'), 'form')]"/>
+        </record>
+    </data>
+</odoo>
+
+

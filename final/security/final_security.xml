@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Module category -->
+        <record id="module_category_final" model="ir.module.category">
+            <field name="name">Сеть теннисных клубов</field>
+            <field name="sequence">15</field>
+        </record>
+
+        <!-- Security groups -->
+        <record id="group_final_director" model="res.groups">
+            <field name="name">Директор</field>
+            <field name="category_id" ref="final.module_category_final"/>
+            <field name="comment">Видит и управляет всеми объектами сети спортивных центров.</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_final_manager" model="res.groups">
+            <field name="name">Менеджер спортивного центра</field>
+            <field name="category_id" ref="final.module_category_final"/>
+            <field name="comment">
+                Управляет данными своего спортивного центра. Финансовые отчёты ограничены.
+            </field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_final_trainer" model="res.groups">
+            <field name="name">Тренер</field>
+            <field name="category_id" ref="final.module_category_final"/>
+            <field name="comment">Работает только со своим расписанием и ставками.</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Администраторы системы автоматически получают роль директора -->
+        <record id="base.group_system" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('final.group_final_director'))]"/>
+        </record>
+
+        <!-- Record rules: Спортивные центры -->
+        <record id="final_rule_sport_center_director" model="ir.rule">
+            <field name="name">final.sport.center director access</field>
+            <field name="model_id" ref="final.model_final_sport_center"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_sport_center_manager" model="ir.rule">
+            <field name="name">final.sport.center manager access</field>
+            <field name="model_id" ref="final.model_final_sport_center"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <record id="final_rule_sport_center_trainer" model="ir.rule">
+            <field name="name">final.sport.center trainer access</field>
+            <field name="model_id" ref="final.model_final_sport_center"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('id', 'in', user.employee_id.trainer_center_ids.ids)]</field>
+        </record>
+
+        <!-- Record rules: Теннисные корты -->
+        <record id="final_rule_tennis_court_director" model="ir.rule">
+            <field name="name">final.tennis.court director access</field>
+            <field name="model_id" ref="final.model_final_tennis_court"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_tennis_court_manager" model="ir.rule">
+            <field name="name">final.tennis.court manager access</field>
+            <field name="model_id" ref="final.model_final_tennis_court"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <record id="final_rule_tennis_court_trainer" model="ir.rule">
+            <field name="name">final.tennis.court trainer access</field>
+            <field name="model_id" ref="final.model_final_tennis_court"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.trainer_center_ids.ids)]</field>
+        </record>
+
+        <!-- Record rules: Привязки тренеров к центрам -->
+        <record id="final_rule_center_trainer_director" model="ir.rule">
+            <field name="name">final.center.trainer director access</field>
+            <field name="model_id" ref="final.model_final_center_trainer"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_center_trainer_manager" model="ir.rule">
+            <field name="name">final.center.trainer manager access</field>
+            <field name="model_id" ref="final.model_final_center_trainer"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <!-- Record rules: Ставки тренеров -->
+        <record id="final_rule_trainer_rate_director" model="ir.rule">
+            <field name="name">final.trainer.rate director access</field>
+            <field name="model_id" ref="final.model_final_trainer_rate"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_trainer_rate_trainer" model="ir.rule">
+            <field name="name">final.trainer.rate trainer access</field>
+            <field name="model_id" ref="final.model_final_trainer_rate"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
+        </record>
+
+        <!-- Record rules: Расписание тренера -->
+        <record id="final_rule_trainer_schedule_director" model="ir.rule">
+            <field name="name">final.trainer.schedule director access</field>
+            <field name="model_id" ref="final.model_final_trainer_schedule"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_trainer_schedule_trainer" model="ir.rule">
+            <field name="name">final.trainer.schedule trainer access</field>
+            <field name="model_id" ref="final.model_final_trainer_schedule"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
+        </record>
+
+        <!-- Record rules: Цены на тренировки -->
+        <record id="final_rule_center_training_price_director" model="ir.rule">
+            <field name="name">final.center.training.price director access</field>
+            <field name="model_id" ref="final.model_final_center_training_price"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_center_training_price_manager" model="ir.rule">
+            <field name="name">final.center.training.price manager access</field>
+            <field name="model_id" ref="final.model_final_center_training_price"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+    </data>
+</odoo>
+
+

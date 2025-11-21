@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Представление списка СЦ для кабинета тренера -->
+        <record id="view_trainer_cabinet_sport_center_list" model="ir.ui.view">
+            <field name="name">trainer.cabinet.sport.center.list</field>
+            <field name="model">final.sport.center</field>
+            <field name="arch" type="xml">
+                <list string="Спортивные центры" create="0" delete="0">
+                    <field name="name"/>
+                    <field name="manager_name"/>
+                    <field name="work_time_start"/>
+                    <field name="work_time_end"/>
+                    <field name="tennis_court_count" string="Количество кортов"/>
+                    <field name="is_trainer_attached" invisible="1"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Форма СЦ для тренера -->
+        <record id="view_trainer_cabinet_sport_center_form" model="ir.ui.view">
+            <field name="name">trainer.cabinet.sport.center.form</field>
+            <field name="model">final.sport.center</field>
+            <field name="arch" type="xml">
+                <form string="Спортивный центр" create="0" delete="0">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="Информация о центре">
+                                <field name="name" readonly="1"/>
+                                <field name="manager_name" readonly="1"/>
+                                <field name="work_time_start" readonly="1"/>
+                                <field name="work_time_end" readonly="1"/>
+                            </group>
+                            <group string="Цены на тренировки (для клиентов)">
+                                <field name="individual_price" readonly="1" string="Индивидуальная"/>
+                                <field name="split_price" readonly="1" string="Сплит"/>
+                                <field name="group_price" readonly="1" string="Групповая"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Мои ставки" invisible="is_trainer_attached">
+                                <group string="Укажите ваши ставки за час тренировки">
+                                    <field name="trainer_individual_rate" 
+                                           string="Ставка за индивидуальную тренировку"
+                                           required="1"/>
+                                    <field name="trainer_split_rate" 
+                                           string="Ставка за сплит тренировку"
+                                           required="1"/>
+                                    <field name="trainer_group_rate" 
+                                           string="Ставка за групповую тренировку"
+                                           required="1"/>
+                                </group>
+                            </page>
+                            <page string="Мои ставки" invisible="not is_trainer_attached">
+                                <group string="Ваши текущие ставки">
+                                    <field name="trainer_individual_rate" 
+                                           string="Ставка за индивидуальную тренировку"
+                                           readonly="1"/>
+                                    <field name="trainer_split_rate" 
+                                           string="Ставка за сплит тренировку"
+                                           readonly="1"/>
+                                    <field name="trainer_group_rate" 
+                                           string="Ставка за групповую тренировку"
+                                           readonly="1"/>
+                                </group>
+                            </page>
+                        </notebook>
+                        <field name="is_trainer_attached" invisible="1"/>
+                        <field name="_trainer_rates_storage" invisible="1"/>
+                    </sheet>
+                    <footer>
+                        <button name="action_apply_as_trainer"
+                                string="Устроиться"
+                                type="object"
+                                class="btn-primary"
+                                invisible="is_trainer_attached"/>
+                        <button string="Закрыть"
+                                class="btn-secondary"
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_trainer_cabinet_sport_center_search" model="ir.ui.view">
+            <field name="name">trainer.cabinet.sport.center.search</field>
+            <field name="model">final.sport.center</field>
+            <field name="arch" type="xml">
+                <search string="Спортивные центры">
+                    <field name="name"/>
+                    <field name="manager_name"/>
+                    <filter name="attached" 
+                            string="Мои центры" 
+                            domain="[('is_trainer_attached', '=', True)]"/>
+                    <filter name="not_attached" 
+                            string="Не привязанные" 
+                            domain="[('is_trainer_attached', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_trainer_cabinet_sport_center" model="ir.actions.act_window">
+            <field name="name">Кабинет тренера</field>
+            <field name="res_model">final.sport.center</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_trainer_cabinet_sport_center_list"/>
+            <field name="views" eval="[(ref('view_trainer_cabinet_sport_center_list'), 'list'), (ref('view_trainer_cabinet_sport_center_form'), 'form')]"/>
+            <field name="search_view_id" ref="view_trainer_cabinet_sport_center_search"/>
+            <field name="context">{'trainer_cabinet': True}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Выберите спортивный центр из списка, чтобы увидеть информацию и устроиться на работу.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+
