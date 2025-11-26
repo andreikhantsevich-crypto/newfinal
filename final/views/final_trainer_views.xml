@@ -159,6 +159,82 @@
                 </p>
             </field>
         </record>
+
+        <!-- Форма личного кабинета тренера -->
+        <record id="view_trainer_personal_cabinet_form" model="ir.ui.view">
+            <field name="name">trainer.personal.cabinet.form</field>
+            <field name="model">hr.employee</field>
+            <field name="arch" type="xml">
+                <form string="Личный кабинет" create="0" delete="0">
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="Личная информация">
+                                <field name="name" readonly="1" string="Имя"/>
+                                <field name="trainer_email" readonly="1" string="Почта"/>
+                                <field name="trainer_login" readonly="1" string="Логин"/>
+                                <field name="trainer_center_count" readonly="1" string="Количество СЦ"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Спортивные центры" name="page_centers">
+                                <field name="trainer_center_ids" readonly="1" mode="list">
+                                    <list string="Спортивные центры" create="0" delete="0">
+                                        <field name="name"/>
+                                        <field name="manager_name" string="Менеджер"/>
+                                        <field name="work_time_start" widget="float_time"/>
+                                        <field name="work_time_end" widget="float_time"/>
+                                        <field name="tennis_court_count" string="Кортов"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Мои ставки" name="page_rates">
+                                <field name="center_trainer_ids" readonly="1" mode="list">
+                                    <list string="Ставки по центрам" create="0" delete="0">
+                                        <field name="sport_center_id" string="Спортивный центр"/>
+                                        <field name="individual_rate" string="Индивидуальная"/>
+                                        <field name="split_rate" string="Сплит"/>
+                                        <field name="group_rate" string="Групповая"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Список для личного кабинета тренера (показывает только текущего) -->
+        <record id="view_trainer_personal_cabinet_list" model="ir.ui.view">
+            <field name="name">trainer.personal.cabinet.list</field>
+            <field name="model">hr.employee</field>
+            <field name="arch" type="xml">
+                <list string="Личный кабинет" create="0" delete="0">
+                    <field name="name"/>
+                    <field name="work_email" string="Почта"/>
+                    <field name="trainer_center_count" string="Количество СЦ"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Действие для открытия личного кабинета тренера -->
+        <record id="action_trainer_my_cabinet" model="ir.actions.act_window">
+            <field name="name">Личный кабинет</field>
+            <field name="res_model">hr.employee</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_trainer_personal_cabinet_list"/>
+            <field name="views" eval="[(ref('view_trainer_personal_cabinet_list'), 'list'), (ref('view_trainer_personal_cabinet_form'), 'form')]"/>
+            <field name="domain">[('user_id', '=', uid)]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Ваш личный кабинет
+                </p>
+            </field>
+        </record>
     </data>
 </odoo>
 

@@ -1,12 +1,16 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_final_sport_center_director,access.final.sport.center.director,model_final_sport_center,final.group_final_director,1,1,1,1
 access_final_sport_center_manager,access.final.sport.center.manager,model_final_sport_center,final.group_final_manager,1,1,0,0
+access_final_sport_center_trainer,access.final.sport.center.trainer,model_final_sport_center,final.group_final_trainer,1,0,0,0
 access_final_tennis_court_director,access.final.tennis.court.director,model_final_tennis_court,final.group_final_director,1,1,1,1
 access_final_tennis_court_manager,access.final.tennis.court.manager,model_final_tennis_court,final.group_final_manager,1,1,1,0
+access_final_tennis_court_trainer,access.final.tennis.court.trainer,model_final_tennis_court,final.group_final_trainer,1,0,0,0
 access_final_training_type_director,access.final.training.type.director,model_final_training_type,final.group_final_director,1,1,1,1
 access_final_training_type_manager,access.final.training.type.manager,model_final_training_type,final.group_final_manager,1,0,0,0
+access_final_training_type_trainer,access.final.training.type.trainer,model_final_training_type,final.group_final_trainer,1,0,0,0
 access_final_center_trainer_director,access.final.center.trainer.director,model_final_center_trainer,final.group_final_director,1,1,1,1
 access_final_center_trainer_manager,access.final.center.trainer.manager,model_final_center_trainer,final.group_final_manager,1,1,1,1
+access_final_center_trainer_trainer,access.final.center.trainer.trainer,model_final_center_trainer,final.group_final_trainer,1,1,1,0
 access_final_trainer_rate_director,access.final.trainer.rate.director,model_final_trainer_rate,final.group_final_director,1,1,1,1
 access_final_trainer_rate_trainer,access.final.trainer.rate.trainer,model_final_trainer_rate,final.group_final_trainer,1,1,1,1
 access_final_trainer_schedule_director,access.final.trainer.schedule.director,model_final_trainer_schedule,final.group_final_director,1,1,1,1
@@ -15,3 +19,5 @@ access_final_create_trainer_wizard_director,access.final.create.trainer.wizard.d
 access_final_attach_trainer_wizard_trainer,access.final.attach.trainer.wizard.trainer,model_final_attach_trainer_wizard,final.group_final_trainer,1,1,1,1
 access_final_center_training_price_director,access.final.center.training.price.director,model_final_center_training_price,final.group_final_director,1,1,1,1
 access_final_center_training_price_manager,access.final.center.training.price.manager,model_final_center_training_price,final.group_final_manager,1,1,0,0
+access_final_center_training_price_trainer,access.final.center.training.price.trainer,model_final_center_training_price,final.group_final_trainer,1,0,0,0
+access_hr_employee_trainer,access.hr.employee.trainer,hr.model_hr_employee,final.group_final_trainer,1,0,0,0

@@ -28,7 +28,7 @@
             <field name="name">Тренер</field>
             <field name="category_id" ref="final.module_category_final"/>
             <field name="comment">Работает только со своим расписанием и ставками.</field>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('hr.group_hr_user'))]"/>
         </record>
 
         <!-- Администраторы системы автоматически получают роль директора -->
@@ -51,11 +51,12 @@
             <field name="domain_force">[('id', 'in', user.employee_id.sport_center_id.ids)]</field>
         </record>
 
+        <!-- Тренер видит ВСЕ спортивные центры (для выбора места работы) -->
         <record id="final_rule_sport_center_trainer" model="ir.rule">
             <field name="name">final.sport.center trainer access</field>
             <field name="model_id" ref="final.model_final_sport_center"/>
             <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
-            <field name="domain_force">[('id', 'in', user.employee_id.trainer_center_ids.ids)]</field>
+            <field name="domain_force">[(1, '=', 1)]</field>
         </record>
 
         <!-- Record rules: Теннисные корты -->
@@ -73,11 +74,35 @@
             <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
         </record>
 
+        <!-- Тренер видит все теннисные корты (для просмотра информации о СЦ) -->
         <record id="final_rule_tennis_court_trainer" model="ir.rule">
             <field name="name">final.tennis.court trainer access</field>
             <field name="model_id" ref="final.model_final_tennis_court"/>
             <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
-            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.trainer_center_ids.ids)]</field>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <!-- Record rules: Виды тренировок -->
+        <record id="final_rule_training_type_director" model="ir.rule">
+            <field name="name">final.training.type director access</field>
+            <field name="model_id" ref="final.model_final_training_type"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_training_type_manager" model="ir.rule">
+            <field name="name">final.training.type manager access</field>
+            <field name="model_id" ref="final.model_final_training_type"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <!-- Тренер видит все виды тренировок (только чтение) -->
+        <record id="final_rule_training_type_trainer" model="ir.rule">
+            <field name="name">final.training.type trainer access</field>
+            <field name="model_id" ref="final.model_final_training_type"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
         </record>
 
         <!-- Record rules: Привязки тренеров к центрам -->
@@ -93,6 +118,14 @@
             <field name="model_id" ref="final.model_final_center_trainer"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
             <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <!-- Тренер видит и может создавать свои привязки к СЦ -->
+        <record id="final_rule_center_trainer_trainer" model="ir.rule">
+            <field name="name">final.center.trainer trainer access</field>
+            <field name="model_id" ref="final.model_final_center_trainer"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('employee_id', '=', user.employee_id.id)]</field>
         </record>
 
         <!-- Record rules: Ставки тренеров -->
@@ -138,6 +171,22 @@
             <field name="model_id" ref="final.model_final_center_training_price"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
             <field name="domain_force">[('center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <!-- Тренер видит цены на тренировки во всех СЦ (только чтение) -->
+        <record id="final_rule_center_training_price_trainer" model="ir.rule">
+            <field name="name">final.center.training.price trainer access</field>
+            <field name="model_id" ref="final.model_final_center_training_price"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <!-- Record rules: hr.employee - тренер видит только себя -->
+        <record id="final_rule_hr_employee_trainer" model="ir.rule">
+            <field name="name">hr.employee trainer access own</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
         </record>
     </data>
 </odoo>

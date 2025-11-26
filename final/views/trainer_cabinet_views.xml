@@ -22,7 +22,7 @@
             <field name="name">trainer.cabinet.sport.center.form</field>
             <field name="model">final.sport.center</field>
             <field name="arch" type="xml">
-                <form string="Спортивный центр" create="0" delete="0">
+                <form string="Спортивный центр" create="0" delete="0" edit="0">
                     <sheet>
                         <div class="oe_title">
                             <h1>
@@ -31,12 +31,12 @@
                         </div>
                         <group>
                             <group string="Информация о центре">
-                                <field name="name" readonly="1"/>
-                                <field name="manager_name" readonly="1"/>
-                                <field name="work_time_start" readonly="1"/>
-                                <field name="work_time_end" readonly="1"/>
+                                <field name="manager_name" readonly="1" string="Менеджер"/>
+                                <field name="work_time_start" readonly="1" widget="float_time"/>
+                                <field name="work_time_end" readonly="1" widget="float_time"/>
+                                <field name="tennis_court_count" readonly="1" string="Количество кортов"/>
                             </group>
-                            <group string="Цены на тренировки (для клиентов)">
+                            <group string="Цены на тренировки">
                                 <field name="individual_price" readonly="1" string="Индивидуальная"/>
                                 <field name="split_price" readonly="1" string="Сплит"/>
                                 <field name="group_price" readonly="1" string="Групповая"/>
@@ -44,6 +44,15 @@
                             </group>
                         </group>
                         <notebook>
+                            <page string="Теннисные корты">
+                                <field name="tennis_court_ids" readonly="1" mode="list">
+                                    <list string="Теннисные корты" create="0" delete="0">
+                                        <field name="name"/>
+                                        <field name="work_time_start" widget="float_time"/>
+                                        <field name="work_time_end" widget="float_time"/>
+                                    </list>
+                                </field>
+                            </page>
                             <page string="Мои ставки" invisible="is_trainer_attached">
                                 <group string="Укажите ваши ставки за час тренировки">
                                     <field name="trainer_individual_rate" 

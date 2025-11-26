@@ -42,7 +42,7 @@
                             </group>
                         </group>
                         <notebook>
-                            <page string="Тренеры">
+                            <page string="Тренеры" name="page_trainers">
                                 <field name="trainer_ids"
                                        mode="list"
                                        readonly="1">
@@ -54,7 +54,7 @@
                                     </list>
                                 </field>
                             </page>
-                            <page string="Клиенты">
+                            <page string="Клиенты" name="page_clients">
                                 <field name="client_ids" 
                                        mode="list"
                                        readonly="1">
@@ -65,7 +65,7 @@
                                     </list>
                                 </field>
                             </page>
-                            <page string="Теннисные корты">
+                            <page string="Теннисные корты" name="page_courts">
                                 <field name="tennis_court_ids"
                                        mode="list"
                                        readonly="1">
@@ -236,6 +236,33 @@
                 <p class="o_view_nocontent_smiling_face">
                     Создайте теннисный корт с рабочим временем и доступными видами тренировок.
                 </p>
+            </field>
+        </record>
+
+        <!-- Скрываем конфиденциальные поля от тренера -->
+        <record id="view_final_sport_center_form_trainer_hide" model="ir.ui.view">
+            <field name="name">final.sport.center.form.trainer.hide</field>
+            <field name="model">final.sport.center</field>
+            <field name="inherit_id" ref="view_final_sport_center_form"/>
+            <field name="arch" type="xml">
+                <!-- Скрываем логин, email, пароль менеджера для тренера -->
+                <xpath expr="//field[@name='manager_login']" position="attributes">
+                    <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>
+                </xpath>
+                <xpath expr="//field[@name='manager_email']" position="attributes">
+                    <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>
+                </xpath>
+                <xpath expr="//field[@name='manager_password']" position="attributes">
+                    <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>
+                </xpath>
+                <!-- Скрываем вкладку Клиенты для тренера -->
+                <xpath expr="//page[@name='page_clients']" position="attributes">
+                    <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>
+                </xpath>
+                <!-- Скрываем вкладку Тренеры для тренера -->
+                <xpath expr="//page[@name='page_trainers']" position="attributes">
+                    <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>
+                </xpath>
             </field>
         </record>
     </data>
