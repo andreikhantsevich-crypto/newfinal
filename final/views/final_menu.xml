@@ -11,14 +11,97 @@
             <field name="action" eval="False"/>
         </record>
         
+        <!-- View формы личного кабинета тренера -->
+        <record id="view_my_trainer_cabinet_form" model="ir.ui.view">
+            <field name="name">my.trainer.cabinet.form</field>
+            <field name="model">hr.employee</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <form string="Личный кабинет" create="0" delete="0">
+                    <sheet>
+                        <div class="oe_button_box" name="button_box"/>
+                        <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                        <field name="avatar_128" invisible="1"/>
+                        <field name="image_1920" widget="image" class="oe_avatar" options="{'preview_image': 'avatar_128'}"/>
+                        <div class="oe_title">
+                            <h1 class="d-flex flex-row">
+                                <field name="name" placeholder="Имя сотрудника" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="Личная информация">
+                                <field name="trainer_login" string="Логин" readonly="1"/>
+                                <field name="name" string="Имя" readonly="1"/>
+                                <field name="work_email" string="Почта" readonly="1"/>
+                            </group>
+                            <group string="Роль в системе">
+                                <field name="is_final_trainer" string="Тренер СЦ" readonly="1"/>
+                                <field name="is_final_manager" string="Менеджер СЦ" readonly="1"/>
+                                <field name="trainer_center_count" string="Количество СЦ" readonly="1"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Спортивные центры" name="page_my_centers">
+                                <field name="trainer_center_ids" readonly="1" mode="list">
+                                    <list string="Мои спортивные центры" create="0" delete="0" edit="0">
+                                        <field name="name" string="Название"/>
+                                        <field name="manager_name" string="Менеджер"/>
+                                        <field name="work_time_start" widget="float_time" string="Начало"/>
+                                        <field name="work_time_end" widget="float_time" string="Окончание"/>
+                                        <field name="tennis_court_count" string="Кортов"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Ставки" name="page_my_rates">
+                                <field name="center_trainer_ids" readonly="1" mode="list">
+                                    <list string="Мои ставки по центрам" create="0" delete="0" edit="0">
+                                        <field name="sport_center_id" string="Спортивный центр"/>
+                                        <field name="individual_rate" string="Индивидуальная (за чел.)"/>
+                                        <field name="split_rate" string="Сплит (за чел.)"/>
+                                        <field name="group_rate" string="Групповая (за чел.)"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- View списка для личного кабинета тренера -->
+        <record id="view_trainer_my_cabinet_list" model="ir.ui.view">
+            <field name="name">trainer.my.cabinet.list</field>
+            <field name="model">hr.employee</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <list string="Личный кабинет" create="0" delete="0" edit="0">
+                    <field name="name" string="ФИО"/>
+                    <field name="trainer_login" string="Логин"/>
+                    <field name="work_email" string="Почта"/>
+                    <field name="trainer_center_count" string="Количество СЦ"/>
+                </list>
+            </field>
+        </record>
+        
+        <!-- Действие для личного кабинета тренера -->
+        <record id="action_trainer_my_cabinet_v4" model="ir.actions.act_window">
+            <field name="name">Личный кабинет</field>
+            <field name="res_model">hr.employee</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="view_trainer_my_cabinet_list"/>
+            <field name="views" eval="[(ref('view_trainer_my_cabinet_list'), 'list'), (ref('view_my_trainer_cabinet_form'), 'form')]"/>
+            <field name="domain">[('user_id', '=', uid)]</field>
+        </record>
+
         <!-- Корневое меню для тренера -->
         <menuitem id="menu_final_root_trainer"
                   name="Final"
                   sequence="10"
                   web_icon="base,static/description/icon.png"
+                  action="action_trainer_cabinet_sport_center"
                   groups="final.group_final_trainer"/>
         <record id="menu_final_root_trainer" model="ir.ui.menu">
-            <field name="action" ref="action_trainer_cabinet_sport_center"/>
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
         </record>
         <menuitem id="menu_final_orders"
                   name="Спортивные центры"
@@ -62,24 +145,49 @@
                   action="action_create_trainer_wizard"
                   sequence="26"
                   groups="final.group_final_director"/>
-        <menuitem id="menu_final_trainer_sport_centers"
-                  name="Спортивные центры"
-                  parent="menu_final_root"
-                  action="action_trainer_cabinet_sport_center"
+        <!-- Меню для тренера -->
+        <menuitem id="menu_final_trainer_personal_cabinet"
+                  name="Личный кабинет"
+                  parent="menu_final_root_trainer"
+                  action="action_trainer_my_cabinet_v4"
                   sequence="1"
                   groups="final.group_final_trainer"/>
+        
+        <record id="menu_final_trainer_personal_cabinet" model="ir.ui.menu">
+            <field name="action" ref="action_trainer_my_cabinet_v4"/>
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
+            <field name="parent_id" ref="menu_final_root_trainer"/>
+        </record>
+        
+        <menuitem id="menu_final_trainer_sport_centers"
+                  name="Спортивные центры"
+                  parent="menu_final_root_trainer"
+                  action="action_trainer_cabinet_sport_center"
+                  sequence="2"
+                  groups="final.group_final_trainer"/>
+        
+        <record id="menu_final_trainer_sport_centers" model="ir.ui.menu">
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
+            <field name="parent_id" ref="menu_final_root_trainer"/>
+        </record>
+        
         <menuitem id="menu_final_trainer_schedule"
                   name="Расписание"
-                  parent="menu_final_root"
+                  parent="menu_final_root_trainer"
                   action="action_final_trainer_schedule"
-                  sequence="2"
-                  groups="final.group_final_trainer,final.group_final_director"/>
-        <menuitem id="menu_final_trainer_rates"
-                  name="Ставки"
-                  parent="menu_final_root"
-                  action="action_final_trainer_rate"
                   sequence="3"
-                  groups="final.group_final_trainer,final.group_final_director"/>
+                  groups="final.group_final_trainer"/>
+        
+        <record id="menu_final_trainer_schedule" model="ir.ui.menu">
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
+            <field name="parent_id" ref="menu_final_root_trainer"/>
+        </record>
+        
+        <!-- Убираем Ставки для директора -->
+        <record id="menu_final_trainer_rates" model="ir.ui.menu">
+            <field name="groups_id" eval="[(6, 0, [])]"/>
+            <field name="active" eval="False"/>
+        </record>
     </data>
 </odoo>
 

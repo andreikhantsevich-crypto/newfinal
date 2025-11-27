@@ -30,22 +30,22 @@ class FinalCenterTrainer(models.Model):
     
     # Computed поля для ставок тренера
     individual_rate = fields.Monetary(
-        string="Ставка за индивидуальную тренировку",
+        string="Ставка за индивидуальную тренировку (за чел.)",
         compute="_compute_trainer_rates",
         currency_field="currency_id",
-        help="Ставка тренера за час индивидуальной тренировки",
+        help="Ставка тренера за час индивидуальной тренировки за человека",
     )
     split_rate = fields.Monetary(
-        string="Ставка за сплит тренировку",
+        string="Ставка за сплит тренировку (за чел.)",
         compute="_compute_trainer_rates",
         currency_field="currency_id",
-        help="Ставка тренера за час сплит тренировки",
+        help="Ставка тренера за час сплит тренировки за человека",
     )
     group_rate = fields.Monetary(
-        string="Ставка за групповую тренировку",
+        string="Ставка за групповую тренировку (за чел.)",
         compute="_compute_trainer_rates",
         currency_field="currency_id",
-        help="Ставка тренера за час групповой тренировки",
+        help="Ставка тренера за час групповой тренировки за человека",
     )
     currency_id = fields.Many2one(
         "res.currency",
@@ -90,7 +90,8 @@ class FinalCenterTrainer(models.Model):
             if not employee:
                 continue
             if not employee.is_final_trainer:
-                employee.write({"is_final_trainer": True})
+                # Используем sudo() для обновления employee, если нет прав
+                employee.sudo().write({"is_final_trainer": True})
 
     def _cleanup_old_links(self, links):
         for employee, center in links:
@@ -112,7 +113,8 @@ class FinalCenterTrainer(models.Model):
                 continue
             if has_other_links:
                 continue
-            employee.write({"is_final_trainer": False})
+            # Используем sudo() для обновления employee
+            employee.sudo().write({"is_final_trainer": False})
 
     @api.depends("employee_id", "sport_center_id")
     def _compute_trainer_rates(self):

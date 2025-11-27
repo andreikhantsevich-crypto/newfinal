@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_apply_trainer_wizard_form" model="ir.ui.view">
+            <field name="name">final.apply.trainer.wizard.form</field>
+            <field name="model">final.apply.trainer.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Устроиться в спортивный центр">
+                    <sheet>
+                        <group>
+                            <field name="sport_center_id" 
+                                   readonly="1"
+                                   string="Спортивный центр"/>
+                        </group>
+                        <separator string="Укажите ваши ставки за час тренировки"/>
+                        <group col="1">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="individual_rate" 
+                                   required="1"
+                                   string="Ставка за индивидуальную тренировку (за чел.)"/>
+                            <field name="split_rate" 
+                                   required="1"
+                                   string="Ставка за сплит тренировку (за чел.)"/>
+                            <field name="group_rate" 
+                                   required="1"
+                                   string="Ставка за групповую тренировку (за чел.)"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_apply_trainer"
+                                string="Устроиться"
+                                type="object"
+                                class="btn-primary"/>
+                        <button string="Отмена"
+                                class="btn-secondary"
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_apply_trainer_wizard" model="ir.actions.act_window">
+            <field name="name">Устроиться в спортивный центр</field>
+            <field name="res_model">final.apply.trainer.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="view_id" ref="view_apply_trainer_wizard_form"/>
+        </record>
+    </data>
+</odoo>
+

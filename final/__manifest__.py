@@ -23,6 +23,7 @@
         'views/final_trainer_views.xml',
         'views/create_trainer_wizard_views.xml',
         'views/attach_trainer_wizard_views.xml',
+        'views/apply_trainer_wizard_views.xml',
         'views/trainer_cabinet_views.xml',
         'views/final_center_training_price_views.xml',
         'views/final_menu.xml',

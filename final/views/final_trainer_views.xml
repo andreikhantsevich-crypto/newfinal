@@ -196,9 +196,9 @@
                                 <field name="center_trainer_ids" readonly="1" mode="list">
                                     <list string="Ставки по центрам" create="0" delete="0">
                                         <field name="sport_center_id" string="Спортивный центр"/>
-                                        <field name="individual_rate" string="Индивидуальная"/>
-                                        <field name="split_rate" string="Сплит"/>
-                                        <field name="group_rate" string="Групповая"/>
+                                        <field name="individual_rate" string="Индивидуальная (за чел.)"/>
+                                        <field name="split_rate" string="Сплит (за чел.)"/>
+                                        <field name="group_rate" string="Групповая (за чел.)"/>
                                     </list>
                                 </field>
                             </page>

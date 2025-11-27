@@ -48,9 +48,9 @@
                                        readonly="1">
                                     <list string="Тренеры">
                                         <field name="employee_id" string="Имя"/>
-                                        <field name="individual_rate" string="Ставка за индивидуальную"/>
-                                        <field name="split_rate" string="Ставка за сплит"/>
-                                        <field name="group_rate" string="Ставка за групповую"/>
+                                        <field name="individual_rate" string="Ставка за индивидуальную (за чел.)"/>
+                                        <field name="split_rate" string="Ставка за сплит (за чел.)"/>
+                                        <field name="group_rate" string="Ставка за групповую (за чел.)"/>
                                     </list>
                                 </field>
                             </page>
@@ -137,9 +137,9 @@
                                        readonly="1">
                                     <list string="Тренеры">
                                         <field name="employee_id" string="Имя"/>
-                                        <field name="individual_rate" string="Ставка за индивидуальную"/>
-                                        <field name="split_rate" string="Ставка за сплит"/>
-                                        <field name="group_rate" string="Ставка за групповую"/>
+                                        <field name="individual_rate" string="Ставка за индивидуальную (за чел.)"/>
+                                        <field name="split_rate" string="Ставка за сплит (за чел.)"/>
+                                        <field name="group_rate" string="Ставка за групповую (за чел.)"/>
                                     </list>
                                 </field>
                             </page>
@@ -245,6 +245,26 @@
             <field name="model">final.sport.center</field>
             <field name="inherit_id" ref="view_final_sport_center_form"/>
             <field name="arch" type="xml">
+                <!-- Скрываем статистическую кнопку с кортами для тренера и добавляем кнопку "Устроиться" -->
+                <xpath expr="//header/button[@name='action_open_tennis_courts']" position="after">
+                    <button name="action_apply_as_trainer"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-user-plus"
+                            invisible="is_trainer_attached"
+                            groups="final.group_final_trainer">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Устроиться</span>
+                        </div>
+                    </button>
+                </xpath>
+                <xpath expr="//button[@name='action_open_tennis_courts']" position="attributes">
+                    <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>
+                </xpath>
+                <!-- Добавляем поле is_trainer_attached для вычисления -->
+                <xpath expr="//sheet" position="inside">
+                    <field name="is_trainer_attached" invisible="1"/>
+                </xpath>
                 <!-- Скрываем логин, email, пароль менеджера для тренера -->
                 <xpath expr="//field[@name='manager_login']" position="attributes">
                     <attribute name="groups">final.group_final_director,final.group_final_manager</attribute>

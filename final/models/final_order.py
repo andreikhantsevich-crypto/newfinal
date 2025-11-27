@@ -84,25 +84,25 @@ class FinalSportCenter(models.Model):
     
     # Computed поля для цен на тренировки
     individual_price = fields.Monetary(
-        string="Цена за индивидуальную тренировку",
+        string="Цена за индивидуальную тренировку (за чел.)",
         compute="_compute_training_prices",
         inverse="_inverse_training_prices",
         currency_field="currency_id",
-        help="Стоимость одного часа индивидуальной тренировки",
+        help="Стоимость одного часа индивидуальной тренировки за человека",
     )
     split_price = fields.Monetary(
-        string="Цена за сплит тренировку",
+        string="Цена за сплит тренировку (за чел.)",
         compute="_compute_training_prices",
         inverse="_inverse_training_prices",
         currency_field="currency_id",
-        help="Стоимость одного часа сплит тренировки",
+        help="Стоимость одного часа сплит тренировки за человека",
     )
     group_price = fields.Monetary(
-        string="Цена за групповую тренировку",
+        string="Цена за групповую тренировку (за чел.)",
         compute="_compute_training_prices",
         inverse="_inverse_training_prices",
         currency_field="currency_id",
-        help="Стоимость одного часа групповой тренировки",
+        help="Стоимость одного часа групповой тренировки за человека",
     )
     currency_id = fields.Many2one(
         "res.currency",
@@ -428,7 +428,7 @@ class FinalSportCenter(models.Model):
             record._trainer_rates_storage = json.dumps(storage)
 
     def action_apply_as_trainer(self):
-        """Привязывает тренера к СЦ и создает ставки"""
+        """Открывает wizard для устройства тренера в СЦ"""
         self.ensure_one()
         trainer_employee = self.env.user.employee_id
         
@@ -448,78 +448,16 @@ class FinalSportCenter(models.Model):
                 _("Вы уже привязаны к спортивному центру '%s'.") % self.name
             )
         
-        # Получаем ставки из временного хранилища
-        import json
-        try:
-            storage = json.loads(self._trainer_rates_storage or "{}")
-            individual_rate = storage.get('individual', 0.0)
-            split_rate = storage.get('split', 0.0)
-            group_rate = storage.get('group', 0.0)
-        except:
-            individual_rate = self.trainer_individual_rate or 0.0
-            split_rate = self.trainer_split_rate or 0.0
-            group_rate = self.trainer_group_rate or 0.0
-        
-        # Проверяем, что все ставки указаны
-        if not individual_rate or not split_rate or not group_rate:
-            raise ValidationError(
-                _("Необходимо указать ставки за все виды тренировок.")
-            )
-        
-        if individual_rate <= 0 or split_rate <= 0 or group_rate <= 0:
-            raise ValidationError(
-                _("Ставки должны быть больше нуля.")
-            )
-        
-        # Создаем привязку тренера к СЦ
-        center_trainer = self.env["final.center.trainer"].create({
-            "employee_id": trainer_employee.id,
-            "sport_center_id": self.id,
-        })
-        
-        # Получаем виды тренировок
-        TrainingType = self.env["final.training.type"]
-        individual_type = TrainingType.search([("code", "=", "individual")], limit=1)
-        split_type = TrainingType.search([("code", "=", "split")], limit=1)
-        group_type = TrainingType.search([("code", "=", "group")], limit=1)
-        
-        # Создаем ставки для каждого вида тренировки
-        TrainerRate = self.env["final.trainer.rate"]
-        
-        if individual_type:
-            TrainerRate.create({
-                "trainer_id": trainer_employee.id,
-                "center_id": self.id,
-                "training_type_id": individual_type.id,
-                "hour_rate": individual_rate,
-            })
-        
-        if split_type:
-            TrainerRate.create({
-                "trainer_id": trainer_employee.id,
-                "center_id": self.id,
-                "training_type_id": split_type.id,
-                "hour_rate": split_rate,
-            })
-        
-        if group_type:
-            TrainerRate.create({
-                "trainer_id": trainer_employee.id,
-                "center_id": self.id,
-                "training_type_id": group_type.id,
-                "hour_rate": group_rate,
-            })
-        
-        # Обновляем представление
+        # Открываем wizard
         return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Успешно"),
-                "message": _("Вы успешно устроились в спортивный центр '%s'.") % self.name,
-                "type": "success",
-                "sticky": False,
-            }
+            "type": "ir.actions.act_window",
+            "name": _("Устроиться в спортивный центр"),
+            "res_model": "final.apply.trainer.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_sport_center_id": self.id,
+            },
         }
 
     @api.model
