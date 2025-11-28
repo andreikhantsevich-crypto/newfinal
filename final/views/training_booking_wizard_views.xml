@@ -24,8 +24,7 @@
                                        options="{'no_open': True, 'no_create': True}"
                                        required="1"
                                        readonly="is_trainer_readonly"
-                                       placeholder="Выберите тренера из списка СЦ"
-                                       domain="[('id', 'in', available_trainer_ids)]"/>
+                                       placeholder="Выберите тренера из списка СЦ"/>
                                 <field name="available_trainer_ids" invisible="1"/>
                             </group>
                             <group string="Время">

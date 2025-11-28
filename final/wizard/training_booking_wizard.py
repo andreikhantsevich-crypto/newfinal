@@ -100,6 +100,7 @@ class TrainingBookingWizard(models.TransientModel):
         "employee_id",
         string="Доступные тренеры",
         compute="_compute_available_trainer_ids",
+        compute_sudo=True,  # Используем sudo для обхода правил доступа при вычислении
         store=False,
     )
     
@@ -122,14 +123,16 @@ class TrainingBookingWizard(models.TransientModel):
             user = self.env.user
             if user.has_group("final.group_final_trainer"):
                 # Для тренера - только его СЦ
-                trainer_employee = user.employee_id
+                # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
+                trainer_employee = user.sudo().employee_id
                 if trainer_employee and trainer_employee.is_final_trainer:
                     record.available_center_ids = trainer_employee.trainer_center_ids
                 else:
                     record.available_center_ids = False
             elif user.has_group("final.group_final_manager"):
                 # Для менеджера - только его СЦ
-                manager_employee = user.employee_id
+                # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
+                manager_employee = user.sudo().employee_id
                 if manager_employee and manager_employee.is_final_manager:
                     center = self.env["final.sport.center"].search([
                         ("manager_id", "=", manager_employee.id),
@@ -147,13 +150,24 @@ class TrainingBookingWizard(models.TransientModel):
     @api.depends("sport_center_id")
     def _compute_available_trainer_ids(self):
         """Вычисляет список доступных тренеров для выбранного СЦ"""
+        user = self.env.user
+        is_trainer = user.has_group("final.group_final_trainer")
+        
         for record in self:
+            # Для тренера не вычисляем список тренеров (поле trainer_id readonly)
+            if is_trainer:
+                record.available_trainer_ids = False
+                continue
+                
             if record.sport_center_id:
                 # Находим тренеров этого СЦ через final.center.trainer
-                center_trainers = self.env["final.center.trainer"].search([
+                # Используем sudo() чтобы избежать проблем с правами доступа при чтении hr.employee
+                center_trainers = self.env["final.center.trainer"].sudo().search([
                     ("sport_center_id", "=", record.sport_center_id.id),
                 ])
-                record.available_trainer_ids = center_trainers.mapped("employee_id")
+                # Используем sudo() при чтении employee_id записей, чтобы обойти правила доступа
+                trainer_ids = center_trainers.mapped("employee_id.id")
+                record.available_trainer_ids = self.env["hr.employee"].sudo().browse(trainer_ids) if trainer_ids else False
             else:
                 record.available_trainer_ids = False
     
@@ -242,17 +256,20 @@ class TrainingBookingWizard(models.TransientModel):
         
         # Автозаполнение тренера для тренера
         if user.has_group("final.group_final_trainer"):
-            trainer_employee = user.employee_id
+            # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
+            trainer_employee = user.sudo().employee_id
             if trainer_employee and trainer_employee.is_final_trainer:
                 # Автозаполнение СЦ из первого центра тренера
                 if trainer_employee.trainer_center_ids:
                     res["sport_center_id"] = trainer_employee.trainer_center_ids[0].id
                     # Устанавливаем тренера (он же инициирует тренировку)
+                    # Используем только ID, чтобы избежать проверки доступа при установке значения
                     res["trainer_id"] = trainer_employee.id
         
         # Автозаполнение СЦ для менеджера
         elif user.has_group("final.group_final_manager"):
-            manager_employee = user.employee_id
+            # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
+            manager_employee = user.sudo().employee_id
             if manager_employee and manager_employee.is_final_manager:
                 # Находим СЦ где менеджер является менеджером
                 center = self.env["final.sport.center"].search([
@@ -271,15 +288,51 @@ class TrainingBookingWizard(models.TransientModel):
     @api.onchange("sport_center_id")
     def _onchange_sport_center_id(self):
         """Обновляет домен корта и тренера при изменении СЦ"""
-        # Обновляем computed поле available_trainer_ids
-        self._compute_available_trainer_ids()
+        user = self.env.user
+        is_trainer = user.has_group("final.group_final_trainer")
         
         if self.sport_center_id:
             # Обновляем домен корта
             self.tennis_court_id = False
             
-            # Получаем список ID тренеров из computed поля
-            trainer_ids = self.available_trainer_ids.ids
+            # Для тренера - поле readonly, не нужно вычислять домен и список тренеров
+            if is_trainer:
+                # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
+                trainer_employee = user.sudo().employee_id
+                if trainer_employee and trainer_employee.is_final_trainer:
+                    # Проверяем, привязан ли тренер к выбранному СЦ
+                    if self.sport_center_id in trainer_employee.trainer_center_ids:
+                        # Тренер привязан к этому СЦ - устанавливаем его
+                        # Используем sudo() при установке значения через write(), чтобы обойти проверку доступа
+                        self.sudo().write({"trainer_id": trainer_employee.id})
+                    else:
+                        # Тренер не привязан к этому СЦ - сбрасываем выбор
+                        self.trainer_id = False
+                        return {
+                            "domain": {
+                                "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
+                            },
+                            "warning": {
+                                "title": _("Ошибка"),
+                                "message": _("Вы не привязаны к этому спортивному центру."),
+                            }
+                        }
+                
+                # Для тренера не устанавливаем домен на trainer_id (поле readonly)
+                return {
+                    "domain": {
+                        "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
+                    }
+                }
+            
+            # Для менеджера и директора - вычисляем список тренеров и устанавливаем домен
+            # Обновляем computed поле available_trainer_ids
+            self._compute_available_trainer_ids()
+            
+            # Используем sudo() для получения ID тренеров, чтобы обойти правила доступа
+            trainer_ids = self.env["final.center.trainer"].sudo().search([
+                ("sport_center_id", "=", self.sport_center_id.id),
+            ]).mapped("employee_id.id")
             
             # Если нет тренеров в этом СЦ
             if not trainer_ids:
@@ -287,6 +340,7 @@ class TrainingBookingWizard(models.TransientModel):
                 return {
                     "domain": {
                         "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
+                        "trainer_id": [("id", "=", False)],  # Пустой домен
                     },
                     "warning": {
                         "title": _("Нет тренеров"),
@@ -294,25 +348,14 @@ class TrainingBookingWizard(models.TransientModel):
                     }
                 }
             
-            # Если текущий пользователь - тренер, проверяем и устанавливаем его
-            user = self.env.user
-            if user.has_group("final.group_final_trainer"):
-                trainer_employee = user.employee_id
-                if trainer_employee and trainer_employee.is_final_trainer:
-                    if trainer_employee.id in trainer_ids:
-                        # Тренер привязан к этому СЦ - оставляем его выбранным
-                        self.trainer_id = trainer_employee.id
-                    else:
-                        # Тренер не привязан к этому СЦ - сбрасываем выбор
-                        self.trainer_id = False
-            else:
-                # Для менеджера - сбрасываем выбор тренера, если он не из этого СЦ
-                if self.trainer_id and self.trainer_id.id not in trainer_ids:
-                    self.trainer_id = False
+            # Для менеджера - сбрасываем выбор тренера, если он не из этого СЦ
+            if self.trainer_id and self.trainer_id.id not in trainer_ids:
+                self.trainer_id = False
             
             return {
                 "domain": {
                     "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
+                    "trainer_id": [("id", "in", trainer_ids)] if trainer_ids else [("id", "=", False)],
                 }
             }
         else:
@@ -329,12 +372,15 @@ class TrainingBookingWizard(models.TransientModel):
         """Проверка что выбранный тренер принадлежит выбранному СЦ"""
         if self.trainer_id and self.sport_center_id:
             # Проверяем через final.center.trainer
-            center_trainer = self.env["final.center.trainer"].search([
+            # Используем sudo() чтобы избежать проблем с правами доступа при чтении hr.employee
+            center_trainer = self.env["final.center.trainer"].sudo().search([
                 ("sport_center_id", "=", self.sport_center_id.id),
                 ("employee_id", "=", self.trainer_id.id),
             ], limit=1)
             
             if not center_trainer:
+                # Используем sudo() для чтения имени тренера, чтобы обойти правила доступа
+                trainer_name = self.trainer_id.sudo().name if self.trainer_id else _("Неизвестный тренер")
                 self.trainer_id = False
                 return {
                     "warning": {
@@ -342,54 +388,202 @@ class TrainingBookingWizard(models.TransientModel):
                         "message": _(
                             "Тренер '%s' не привязан к спортивному центру '%s'. "
                             "Выберите тренера из списка этого СЦ."
-                        ) % (self.trainer_id.name, self.sport_center_id.name),
+                        ) % (trainer_name, self.sport_center_id.name),
                     }
                 }
     
-    @api.onchange("training_type_id", "client_ids")
-    def _onchange_training_type_or_clients(self):
-        """Предупреждение при неверном количестве клиентов"""
-        if not self.training_type_id:
-            return
-        
-        client_count = len(self.client_ids)
-        min_clients = self.training_type_id.min_clients
-        max_clients = self.training_type_id.max_clients
-        
-        if client_count < min_clients:
-            return {
-                "warning": {
-                    "title": _("Недостаточно клиентов"),
-                    "message": _(
-                        "Для тренировки типа '%s' требуется минимум %d клиент(ов). "
-                        "Текущее количество: %d."
-                    ) % (self.training_type_id.name, min_clients, client_count),
+    @api.onchange("training_type_id")
+    def _onchange_training_type_id(self):
+        """Проверяет соответствие количества клиентов при выборе типа тренировки"""
+        # Если тип тренировки выбран, но клиентов нет или их количество не соответствует - сбрасываем тип
+        if self.training_type_id:
+            client_count = len(self.client_ids) if self.client_ids else 0
+            min_clients = self.training_type_id.min_clients
+            max_clients = self.training_type_id.max_clients
+            
+            # Если количество клиентов не соответствует требованиям типа тренировки
+            if client_count < min_clients or client_count > max_clients:
+                old_type_name = self.training_type_id.name
+                required_text = (
+                    f"ровно {min_clients}" if min_clients == max_clients 
+                    else f"от {min_clients} до {max_clients}"
+                )
+                self.training_type_id = False
+                return {
+                    "warning": {
+                        "title": _("Несоответствие типа тренировки"),
+                        "message": _(
+                            "Тип тренировки '%s' требует %s клиент(ов), "
+                            "а вы выбрали %d. "
+                            "Сначала выберите правильное количество клиентов, "
+                            "затем выберите тип тренировки."
+                        ) % (old_type_name, required_text, client_count),
+                    }
                 }
-            }
-        elif client_count > max_clients:
-            return {
-                "warning": {
-                    "title": _("Слишком много клиентов"),
-                    "message": _(
-                        "Для тренировки типа '%s' допускается максимум %d клиент(ов). "
-                        "Текущее количество: %d."
-                    ) % (self.training_type_id.name, max_clients, client_count),
+    
+    @api.onchange("client_ids")
+    def _onchange_client_ids(self):
+        """Проверяет соответствие типа тренировки при изменении клиентов"""
+        if self.training_type_id and self.client_ids:
+            client_count = len(self.client_ids)
+            min_clients = self.training_type_id.min_clients
+            max_clients = self.training_type_id.max_clients
+            
+            if client_count < min_clients:
+                return {
+                    "warning": {
+                        "title": _("Недостаточно клиентов"),
+                        "message": _(
+                            "Для тренировки типа '%s' требуется минимум %d клиент(ов). "
+                            "Текущее количество: %d."
+                        ) % (self.training_type_id.name, min_clients, client_count),
+                    }
                 }
-            }
+            elif client_count > max_clients:
+                return {
+                    "warning": {
+                        "title": _("Слишком много клиентов"),
+                        "message": _(
+                            "Для тренировки типа '%s' допускается максимум %d клиент(ов). "
+                            "Текущее количество: %d."
+                        ) % (self.training_type_id.name, max_clients, client_count),
+                    }
+                }
 
-    @api.onchange("date", "start_time", "duration", "tennis_court_id", "sport_center_id")
-    def _onchange_time_slot(self):
-        """Проверка доступности времени и рабочих часов"""
-        if not all([self.date, self.start_time is not None, self.duration, self.tennis_court_id, self.sport_center_id]):
+    @api.onchange("tennis_court_id")
+    def _onchange_tennis_court_id(self):
+        """Проверка рабочих часов и занятости при выборе корта"""
+        if not self.tennis_court_id or not self.sport_center_id:
             return
         
-        # Формируем datetime для начала и окончания
+        # Если дата и время уже заполнены, проверяем соответствие рабочим часам
+        if self.date and self.start_time is not None and self.duration:
+            # Пропускаем проверку, если время равно 0.0 (дефолтное значение) - пользователь еще не выбрал время
+            if self.start_time == 0.0:
+                return
+            
+            # Формируем datetime для начала и окончания
+            start_datetime = fields.Datetime.to_datetime(self.date)
+            start_hour = int(self.start_time)
+            start_minute = int((self.start_time - start_hour) * 60)
+            start_datetime = start_datetime.replace(hour=start_hour, minute=start_minute, second=0)
+            
+            end_datetime = start_datetime + timedelta(hours=self.duration)
+            
+            # Проверка на прошлое время (только если время реально выбрано пользователем)
+            now = fields.Datetime.now()
+            if start_datetime < now:
+                old_court_name = self.tennis_court_id.name
+                self.tennis_court_id = False
+                return {
+                    "warning": {
+                        "title": _("Время в прошлом"),
+                        "message": _(
+                            "Нельзя создать тренировку в прошлом. "
+                            "Выбранное время: %s. "
+                            "Текущее время: %s. "
+                            "Пожалуйста, сначала выберите время в будущем, "
+                            "затем выберите корт."
+                        ) % (
+                            start_datetime.strftime("%d.%m.%Y %H:%M"),
+                            now.strftime("%d.%m.%Y %H:%M"),
+                        ),
+                    }
+                }
+            
+            # Проверка рабочих часов центра
+            center = self.sport_center_id
+            start_hour_float = start_hour + start_minute / 60.0
+            end_hour_float = start_hour_float + self.duration
+            
+            if start_hour_float < center.work_time_start or end_hour_float > center.work_time_end:
+                old_court_name = self.tennis_court_id.name
+                self.tennis_court_id = False
+                return {
+                    "warning": {
+                        "title": _("Вне рабочих часов"),
+                        "message": _(
+                            "Выбранное время тренировки не соответствует рабочим часам центра '%s' "
+                            "(с %.1f до %.1f часов). "
+                            "Выбранное время: %.1f - %.1f часов. "
+                            "Пожалуйста, сначала выберите время в пределах рабочих часов, "
+                            "затем выберите корт."
+                        ) % (
+                            center.name,
+                            center.work_time_start,
+                            center.work_time_end,
+                            start_hour_float,
+                            end_hour_float,
+                        ),
+                    }
+                }
+            
+            # Проверяем пересечение с существующими записями
+            bookings = self.env["final.training.booking"].search([
+                ("tennis_court_id", "=", self.tennis_court_id.id),
+                ("state", "in", ["draft", "pending_approval", "confirmed"]),
+                ("start_datetime", "<", end_datetime),
+                ("end_datetime", ">", start_datetime),
+            ], limit=1)
+            
+            if bookings:
+                old_court_name = self.tennis_court_id.name
+                self.tennis_court_id = False
+                return {
+                    "warning": {
+                        "title": _("Время занято"),
+                        "message": _(
+                            "Корт '%s' уже занят в это время. "
+                            "Проверьте доступные слоты и выберите другое время или корт."
+                        ) % old_court_name,
+                    }
+                }
+    
+    @api.onchange("date", "start_time", "duration", "sport_center_id")
+    def _onchange_time_slot(self):
+        """Проверка доступности времени и рабочих часов при изменении времени"""
+        if not all([self.date, self.start_time is not None, self.duration]):
+            # Если время не полностью заполнено, сбрасываем корт (если он был выбран)
+            if self.tennis_court_id:
+                self.tennis_court_id = False
+            return
+        
+        # Пропускаем проверку, если время равно 0.0 (дефолтное значение) - пользователь еще не выбрал время
+        if self.start_time == 0.0:
+            return
+        
+        # Проверка на прошлое время (только если время реально выбрано пользователем)
         start_datetime = fields.Datetime.to_datetime(self.date)
         start_hour = int(self.start_time)
         start_minute = int((self.start_time - start_hour) * 60)
         start_datetime = start_datetime.replace(hour=start_hour, minute=start_minute, second=0)
-        
         end_datetime = start_datetime + timedelta(hours=self.duration)
+        
+        # Проверяем, что время не в прошлом
+        now = fields.Datetime.now()
+        if start_datetime < now:
+            # Сбрасываем время и корт, если время в прошлом
+            self.start_time = 0.0
+            if self.tennis_court_id:
+                self.tennis_court_id = False
+            return {
+                "warning": {
+                    "title": _("Время в прошлом"),
+                    "message": _(
+                        "Нельзя создать тренировку в прошлом. "
+                        "Выбранное время: %s. "
+                        "Текущее время: %s. "
+                        "Пожалуйста, выберите время в будущем."
+                    ) % (
+                        start_datetime.strftime("%d.%m.%Y %H:%M"),
+                        now.strftime("%d.%m.%Y %H:%M"),
+                    ),
+                }
+            }
+        
+        # Если корт уже выбран, проверяем соответствие
+        if not self.tennis_court_id or not self.sport_center_id:
+            return
         
         # Проверка рабочих часов центра
         center = self.sport_center_id
@@ -397,13 +591,16 @@ class TrainingBookingWizard(models.TransientModel):
         end_hour_float = start_hour_float + self.duration
         
         if start_hour_float < center.work_time_start or end_hour_float > center.work_time_end:
+            # Сбрасываем корт, если время не соответствует рабочим часам
+            self.tennis_court_id = False
             return {
                 "warning": {
                     "title": _("Вне рабочих часов"),
                     "message": _(
-                        "Тренировка должна быть в рабочие часы центра '%s' "
+                        "Выбранное время не соответствует рабочим часам центра '%s' "
                         "(с %.1f до %.1f часов). "
-                        "Выбранное время: %.1f - %.1f часов."
+                        "Выбранное время: %.1f - %.1f часов. "
+                        "Пожалуйста, выберите время в пределах рабочих часов."
                     ) % (
                         center.name,
                         center.work_time_start,
@@ -423,13 +620,16 @@ class TrainingBookingWizard(models.TransientModel):
         ], limit=1)
         
         if bookings:
+            # Сбрасываем корт, если он занят
+            old_court_name = self.tennis_court_id.name
+            self.tennis_court_id = False
             return {
                 "warning": {
                     "title": _("Время занято"),
                     "message": _(
                         "Корт '%s' уже занят в это время. "
-                        "Проверьте доступные слоты ниже."
-                    ) % self.tennis_court_id.name,
+                        "Проверьте доступные слоты и выберите другое время или корт."
+                    ) % old_court_name,
                 }
             }
 
@@ -474,8 +674,12 @@ class TrainingBookingWizard(models.TransientModel):
         """Создает запись на тренировку"""
         self.ensure_one()
         
-        # Валидации
-        if not all([self.sport_center_id, self.tennis_court_id, self.trainer_id, 
+        # Получаем ID тренера заранее, используя sudo() для обхода правил доступа
+        # Это нужно, чтобы избежать проверки доступа при чтении self.trainer_id
+        trainer_id = self.trainer_id.id if self.trainer_id else False
+        
+        # Валидации - используем ID вместо объектов для избежания проверки доступа
+        if not all([self.sport_center_id, self.tennis_court_id, trainer_id, 
                    self.training_type_id, self.date, self.start_time is not None, 
                    self.duration, self.client_ids]):
             raise ValidationError(_("Заполните все обязательные поля."))
@@ -485,6 +689,21 @@ class TrainingBookingWizard(models.TransientModel):
         start_hour = int(self.start_time)
         start_minute = int((self.start_time - start_hour) * 60)
         start_datetime = start_datetime.replace(hour=start_hour, minute=start_minute, second=0)
+        
+        # Проверка на прошлое время
+        now = fields.Datetime.now()
+        if start_datetime < now:
+            raise ValidationError(
+                _(
+                    "Нельзя создать тренировку в прошлом. "
+                    "Выбранное время: %s. "
+                    "Текущее время: %s. "
+                    "Пожалуйста, выберите время в будущем."
+                ) % (
+                    start_datetime.strftime("%d.%m.%Y %H:%M"),
+                    now.strftime("%d.%m.%Y %H:%M"),
+                )
+            )
         
         # Формируем datetime для окончания
         end_datetime = start_datetime + timedelta(hours=self.duration)
@@ -510,24 +729,28 @@ class TrainingBookingWizard(models.TransientModel):
             )
         
         # Проверяем, что тренер привязан к СЦ
-        if self.sport_center_id not in self.trainer_id.trainer_center_ids:
+        # Используем sudo() для чтения trainer_center_ids и имени, чтобы обойти проблемы с доступом
+        trainer_with_sudo = self.env["hr.employee"].sudo().browse(trainer_id)
+        if self.sport_center_id not in trainer_with_sudo.trainer_center_ids:
+            trainer_name = trainer_with_sudo.name
             raise ValidationError(
                 _("Тренер '%s' не привязан к спортивному центру '%s'.") %
-                (self.trainer_id.name, self.sport_center_id.name)
+                (trainer_name, self.sport_center_id.name)
             )
         
         # Определяем статус в зависимости от роли пользователя
         user = self.env.user
-        if user.has_group("final.group_final_trainer"):
+        is_trainer = user.has_group("final.group_final_trainer")
+        if is_trainer:
             state = "pending_approval"  # Тренер создает - требуется апрув
         else:
             state = "confirmed"  # Менеджер создает - сразу подтверждено
         
-        # Создаем запись
-        booking = self.env["final.training.booking"].create({
+        # Подготавливаем значения для создания записи
+        booking_vals = {
             "sport_center_id": self.sport_center_id.id,
             "tennis_court_id": self.tennis_court_id.id,
-            "trainer_id": self.trainer_id.id,
+            "trainer_id": trainer_id,  # Используем ID вместо self.trainer_id.id
             "training_type_id": self.training_type_id.id,
             "client_ids": [(6, 0, self.client_ids.ids)],
             "start_datetime": start_datetime,
@@ -535,17 +758,49 @@ class TrainingBookingWizard(models.TransientModel):
             "state": state,
             "created_by": user.id,
             "is_recurring": self.is_recurring,
-        })
+        }
+        
+        # Если тренер создает запись, используем sudo() для обхода проверки доступа к hr.employee
+        # Это необходимо, так как тренер не имеет доступа к записям других тренеров
+        if is_trainer:
+            booking = self.env["final.training.booking"].sudo().create(booking_vals)
+        else:
+            booking = self.env["final.training.booking"].create(booking_vals)
+        
+        # Отправляем уведомление менеджеру, если запись создана тренером
+        if state == "pending_approval":
+            booking._notify_manager_new_request()
         
         # TODO: Повторяющиеся тренировки будут реализованы позже
         
-        # Возвращаем action для открытия созданной записи
-        return {
-            "type": "ir.actions.act_window",
-            "name": _("Тренировка создана"),
-            "res_model": "final.training.booking",
-            "res_id": booking.id,
-            "view_mode": "form",
-            "target": "current",
-        }
+        # Если тренер создал запись, возвращаем action для списка записей
+        # Это необходимо, так как после создания с sudo() при попытке открыть форму
+        # система пытается прочитать связанную запись hr.employee через поле trainer_id,
+        # но у тренера может не быть доступа к этой записи из-за правил доступа
+        if is_trainer:
+            # Возвращаем action для списка записей тренера с фильтром по его ID
+            # Тренер увидит свою созданную запись в списке
+            return {
+                "type": "ir.actions.act_window",
+                "name": _("Тренировка создана"),
+                "res_model": "final.training.booking",
+                "view_mode": "list,form",  # В Odoo 18 используется "list" вместо "tree"
+                "domain": [("trainer_id", "=", trainer_id)],
+                "context": {
+                    "search_default_trainer_id": trainer_id,
+                    "default_trainer_id": trainer_id,
+                    "create": False,  # Отключаем создание из списка
+                },
+                "target": "current",
+            }
+        else:
+            # Для менеджера открываем форму созданной записи
+            return {
+                "type": "ir.actions.act_window",
+                "name": _("Тренировка создана"),
+                "res_model": "final.training.booking",
+                "res_id": booking.id,
+                "view_mode": "form",
+                "target": "current",
+            }
 

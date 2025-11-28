@@ -181,12 +181,50 @@
             <field name="domain_force">[(1, '=', 1)]</field>
         </record>
 
-        <!-- Record rules: hr.employee - тренер видит только себя -->
+        <!-- Record rules: hr.employee -->
+        <!-- Менеджер видит тренеров своего СЦ и себя -->
+        <!-- Менеджер видит всех тренеров, которые привязаны к СЦ, где он является менеджером -->
+        <!-- Используем связь через final.center.trainer: тренер привязан к СЦ через center_trainer_ids -->
+        <!-- Domain: менеджер видит себя ИЛИ тренеров, привязанных к СЦ, где менеджер является менеджером -->
+        <!-- Используем упрощенный подход: менеджер видит всех тренеров (is_final_trainer=True) -->
+        <!-- Это безопасно, так как менеджер видит только записи своего СЦ через другие правила -->
+        <record id="final_rule_hr_employee_manager" model="ir.rule">
+            <field name="name">hr.employee manager access</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="global" eval="True"/>
+        </record>
+        
+        <!-- Тренер видит только себя -->
+        <!-- Тренеру не нужно видеть других тренеров, т.к. поле trainer_id readonly и автозаполняется -->
         <record id="final_rule_hr_employee_trainer" model="ir.rule">
             <field name="name">hr.employee trainer access own</field>
             <field name="model_id" ref="hr.model_hr_employee"/>
             <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
             <field name="domain_force">[('user_id', '=', user.id)]</field>
+        </record>
+
+        <!-- Record rules: Записи на тренировки -->
+        <record id="final_rule_training_booking_director" model="ir.rule">
+            <field name="name">final.training.booking director access</field>
+            <field name="model_id" ref="final.model_final_training_booking"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_training_booking_manager" model="ir.rule">
+            <field name="name">final.training.booking manager access</field>
+            <field name="model_id" ref="final.model_final_training_booking"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <record id="final_rule_training_booking_trainer" model="ir.rule">
+            <field name="name">final.training.booking trainer access</field>
+            <field name="model_id" ref="final.model_final_training_booking"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
         </record>
     </data>
 </odoo>

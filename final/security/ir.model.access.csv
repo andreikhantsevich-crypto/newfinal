@@ -22,8 +22,11 @@ access_final_center_training_price_director,access.final.center.training.price.d
 access_final_center_training_price_manager,access.final.center.training.price.manager,model_final_center_training_price,final.group_final_manager,1,1,0,0
 access_final_center_training_price_trainer,access.final.center.training.price.trainer,model_final_center_training_price,final.group_final_trainer,1,0,0,0
 access_hr_employee_trainer,access.hr.employee.trainer,hr.model_hr_employee,final.group_final_trainer,1,0,0,0
-access_final_training_booking_director,access.final.training.booking.director,model_final_training_booking,final.group_final_director,1,0,0,0
+access_hr_employee_manager,access.hr.employee.manager,hr.model_hr_employee,final.group_final_manager,1,0,0,0
+access_final_training_booking_director,access.final.training.booking.director,model_final_training_booking,final.group_final_director,1,1,1,1
 access_final_training_booking_manager,access.final.training.booking.manager,model_final_training_booking,final.group_final_manager,1,1,1,1
 access_final_training_booking_trainer,access.final.training.booking.trainer,model_final_training_booking,final.group_final_trainer,1,1,1,1
 access_final_training_booking_wizard_manager,access.final.training.booking.wizard.manager,model_final_training_booking_wizard,final.group_final_manager,1,1,1,1
 access_final_training_booking_wizard_trainer,access.final.training.booking.wizard.trainer,model_final_training_booking_wizard,final.group_final_trainer,1,1,1,1
+access_final_training_booking_reject_wizard_manager,access.final.training.booking.reject.wizard.manager,model_final_training_booking_reject_wizard,final.group_final_manager,1,1,1,1
+access_final_training_booking_reject_wizard_director,access.final.training.booking.reject.wizard.director,model_final_training_booking_reject_wizard,final.group_final_director,1,1,1,1

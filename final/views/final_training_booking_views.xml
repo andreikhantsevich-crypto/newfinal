@@ -55,7 +55,7 @@
             <field name="name">final.training.booking.list</field>
             <field name="model">final.training.booking</field>
             <field name="arch" type="xml">
-                <list string="Тренировки" create="1" delete="1" editable="bottom">
+                <list string="Тренировки" create="1" delete="1">
                     <field name="name" string="Описание"/>
                     <field name="start_datetime" string="Начало"/>
                     <field name="end_datetime" string="Окончание"/>
@@ -91,6 +91,11 @@
                                 string="Одобрить" 
                                 type="object"
                                 class="oe_highlight"
+                                invisible="state != 'pending_approval'"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_reject" 
+                                string="Отклонить" 
+                                type="object"
                                 invisible="state != 'pending_approval'"
                                 groups="final.group_final_manager,final.group_final_director"/>
                         <button name="action_complete" 
@@ -159,6 +164,12 @@
                                        invisible="not approved_by"/>
                                 <field name="approved_date" readonly="1" 
                                        invisible="not approved_date"/>
+                                <field name="rejected_by" readonly="1" 
+                                       invisible="not rejected_by"/>
+                                <field name="rejected_date" readonly="1" 
+                                       invisible="not rejected_date"/>
+                                <field name="rejection_reason" readonly="1" 
+                                       invisible="not rejection_reason"/>
                             </group>
                         </group>
                         
@@ -229,6 +240,14 @@
                     Используйте меню "Записаться на тренировку" для удобного создания записей.
                 </p>
             </field>
+        </record>
+        
+        <!-- Server action для запросов на одобрение -->
+        <record id="action_final_training_booking_pending_approvals" model="ir.actions.server">
+            <field name="name">Запросы на одобрение</field>
+            <field name="model_id" ref="final.model_final_training_booking"/>
+            <field name="state">code</field>
+            <field name="code">action = model.action_open_pending_approvals()</field>
         </record>
 
     </data>

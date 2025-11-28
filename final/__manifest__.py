@@ -12,7 +12,7 @@
     """,
     'author': 'final',
     'website': '',
-    'depends': ['base', 'hr', 'calendar'],
+    'depends': ['base', 'hr', 'calendar', 'mail'],
     'data': [
         'security/final_security.xml',
         'security/ir.model.access.csv',
@@ -28,6 +28,7 @@
         'views/final_center_training_price_views.xml',
         'views/final_training_booking_views.xml',
         'views/training_booking_wizard_views.xml',
+        'views/training_booking_reject_wizard_views.xml',
         'views/final_menu.xml',
     ],
     'demo': [],

@@ -139,6 +139,12 @@
                   action="action_training_booking_wizard"
                   sequence="17"
                   groups="final.group_final_manager,final.group_final_trainer"/>
+        <menuitem id="menu_final_training_booking_pending_approvals"
+                  name="Запросы на одобрение"
+                  parent="menu_final_root"
+                  action="action_final_training_booking_pending_approvals"
+                  sequence="18"
+                  groups="final.group_final_manager,final.group_final_director"/>
         <menuitem id="menu_final_training_types"
                   name="Виды тренировок"
                   parent="menu_final_root"

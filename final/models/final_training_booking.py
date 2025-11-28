@@ -35,8 +35,16 @@ class FinalTrainingBooking(models.Model):
         "hr.employee",
         string="Тренер",
         required=True,
-        domain="[('is_final_trainer', '=', True)]",
+        # Домен убран, так как валидация происходит в wizard'е и через constraint'ы
+        # Домен вызывал проблемы с доступом для тренеров при создании записи
         index=True,
+        check_company=False,  # Отключаем проверку компании для обхода правил доступа
+    )
+    trainer_name = fields.Char(
+        string="Имя тренера",
+        compute="_compute_trainer_name",
+        store=False,
+        help="Имя тренера для отображения (используется для обхода правил доступа)",
     )
     training_type_id = fields.Many2one(
         "final.training.type",
@@ -98,6 +106,21 @@ class FinalTrainingBooking(models.Model):
     )
     approved_date = fields.Datetime(
         string="Дата одобрения",
+        readonly=True,
+    )
+    rejection_reason = fields.Text(
+        string="Причина отклонения",
+        readonly=True,
+        help="Причина отклонения запроса на тренировку",
+    )
+    rejected_by = fields.Many2one(
+        "res.users",
+        string="Отклонил",
+        readonly=True,
+        index=True,
+    )
+    rejected_date = fields.Datetime(
+        string="Дата отклонения",
         readonly=True,
     )
     total_price = fields.Monetary(
@@ -235,6 +258,20 @@ class FinalTrainingBooking(models.Model):
             
             record.name = " ".join(name_parts) if name_parts else _("Тренировка")
 
+    @api.depends("trainer_id")
+    def _compute_trainer_name(self):
+        """Вычисляет имя тренера с использованием sudo() для обхода правил доступа"""
+        for record in self:
+            if record.trainer_id:
+                # Используем sudo() для чтения имени тренера
+                try:
+                    trainer_sudo = record.sudo().trainer_id
+                    record.trainer_name = trainer_sudo.name if trainer_sudo.exists() else ""
+                except Exception:
+                    record.trainer_name = ""
+            else:
+                record.trainer_name = ""
+    
     @api.depends("start_datetime", "end_datetime")
     def _compute_duration_hours(self):
         """Расчет продолжительности в часах"""
@@ -449,7 +486,9 @@ class FinalTrainingBooking(models.Model):
         """Проверка что тренер привязан к выбранному СЦ"""
         for record in self:
             if record.trainer_id and record.sport_center_id:
-                if record.sport_center_id not in record.trainer_id.trainer_center_ids:
+                # Используем sudo() для чтения trainer_center_ids, чтобы обойти проблемы с доступом
+                trainer_with_sudo = record.trainer_id.sudo()
+                if record.sport_center_id not in trainer_with_sudo.trainer_center_ids:
                     raise ValidationError(
                         _(
                             "Тренер '%s' не привязан к спортивному центру '%s'. "
@@ -464,12 +503,139 @@ class FinalTrainingBooking(models.Model):
 
     def action_approve(self):
         """Одобрение тренировки менеджером"""
+        self.ensure_one()
+        
+        # Проверка прав - только менеджер или директор
+        if not self.env.user.has_group("final.group_final_manager") and not self.env.user.has_group("final.group_final_director"):
+            raise ValidationError(_("Только менеджер или директор могут одобрять тренировки."))
+        
+        # Проверка что запись в статусе ожидания одобрения
+        if self.state != "pending_approval":
+            raise ValidationError(_("Можно одобрить только записи со статусом 'На одобрении'."))
+        
         self.write({
             "state": "confirmed",
             "approved_by": self.env.user.id,
             "approved_date": fields.Datetime.now(),
+            "rejection_reason": False,
+            "rejected_by": False,
+            "rejected_date": False,
         })
+        
+        # Отправка уведомления тренеру
+        self._notify_trainer_approval()
+        
         return True
+    
+    def action_reject(self):
+        """Отклонение тренировки менеджером"""
+        self.ensure_one()
+        
+        # Проверка прав - только менеджер или директор
+        if not self.env.user.has_group("final.group_final_manager") and not self.env.user.has_group("final.group_final_director"):
+            raise ValidationError(_("Только менеджер или директор могут отклонять тренировки."))
+        
+        # Проверка что запись в статусе ожидания одобрения
+        if self.state != "pending_approval":
+            raise ValidationError(_("Можно отклонить только записи со статусом 'На одобрении'."))
+        
+        # Открываем wizard для указания причины отклонения
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Отклонить тренировку"),
+            "res_model": "final.training.booking.reject.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_booking_id": self.id,
+            },
+        }
+    
+    def action_reject_confirm(self, rejection_reason=""):
+        """Подтверждение отклонения с причиной"""
+        self.ensure_one()
+        
+        self.write({
+            "state": "cancelled",
+            "rejection_reason": rejection_reason,
+            "rejected_by": self.env.user.id,
+            "rejected_date": fields.Datetime.now(),
+            "approved_by": False,
+            "approved_date": False,
+        })
+        
+        # Отправка уведомления тренеру
+        self._notify_trainer_rejection()
+        
+        return True
+    
+    def _notify_trainer_approval(self):
+        """Отправка уведомления тренеру об одобрении"""
+        if not self.trainer_id or not self.trainer_id.user_id:
+            return
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Тренировка одобрена"),
+            "body": _(
+                "Ваша тренировка '%s' (%s - %s) была одобрена менеджером."
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+            ),
+            "partner_ids": [(4, self.trainer_id.user_id.partner_id.id)],
+        })
+    
+    def _notify_trainer_rejection(self):
+        """Отправка уведомления тренеру об отклонении"""
+        if not self.trainer_id or not self.trainer_id.user_id:
+            return
+        
+        reason_text = f"\n\nПричина: {self.rejection_reason}" if self.rejection_reason else ""
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Тренировка отклонена"),
+            "body": _(
+                "Ваша тренировка '%s' (%s - %s) была отклонена менеджером.%s"
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+                reason_text,
+            ),
+            "partner_ids": [(4, self.trainer_id.user_id.partner_id.id)],
+        })
+    
+    def _notify_manager_new_request(self):
+        """Отправка уведомления менеджеру о новом запросе"""
+        if not self.sport_center_id or not self.sport_center_id.manager_id or not self.sport_center_id.manager_id.user_id:
+            return
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Новый запрос на одобрение тренировки"),
+            "body": _(
+                "Тренер %s создал запрос на тренировку '%s' (%s - %s). "
+                "Требуется ваше одобрение."
+            ) % (
+                self.trainer_id.name if self.trainer_id else _("Не указан"),
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+            ),
+            "partner_ids": [(4, self.sport_center_id.manager_id.user_id.partner_id.id)],
+        })
 
     def action_complete(self):
         """Завершение тренировки (списание баланса)"""
@@ -490,4 +656,62 @@ class FinalTrainingBooking(models.Model):
             "approved_date": False,
         })
         return True
+    
+    def read(self, fields=None, load='_classic_read'):
+        """Переопределяем read для менеджера, чтобы он мог читать trainer_id"""
+        # Если менеджер читает запись, используем sudo() для чтения всех полей
+        # Это необходимо, так как менеджеру нужно читать trainer_id, к которому у него может не быть доступа
+        if self.env.user.has_group("final.group_final_manager"):
+            # Используем sudo() для чтения записей, чтобы обойти правила доступа к hr.employee
+            # Важно: вызываем super() напрямую с sudo(), чтобы избежать рекурсии
+            return super(FinalTrainingBooking, self.sudo()).read(fields=fields, load=load)
+        
+        return super().read(fields=fields, load=load)
+    
+    @api.model
+    def action_open_pending_approvals(self):
+        """Открывает список запросов на одобрение для менеджера"""
+        user = self.env.user
+        
+        if user.has_group("final.group_final_manager"):
+            # Для менеджера - только запросы его СЦ
+            # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
+            manager_employee = user.sudo().employee_id
+            if manager_employee and manager_employee.is_final_manager:
+                center = self.env["final.sport.center"].search([
+                    ("manager_id", "=", manager_employee.id),
+                ], limit=1)
+                if center:
+                    domain = [
+                        ("state", "=", "pending_approval"),
+                        ("sport_center_id", "=", center.id),
+                    ]
+                else:
+                    domain = [("id", "=", False)]  # Пустой список
+            else:
+                domain = [("id", "=", False)]
+        elif user.has_group("final.group_final_director"):
+            # Для директора - все запросы
+            domain = [("state", "=", "pending_approval")]
+        else:
+            domain = [("id", "=", False)]
+        
+        # Получаем ID представлений для явного указания
+        list_view_id = self.env.ref("final.view_final_training_booking_list").id
+        form_view_id = self.env.ref("final.view_final_training_booking_form").id
+        
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Запросы на одобрение"),
+            "res_model": "final.training.booking",
+            "view_mode": "list,form",
+            "views": [(list_view_id, "list"), (form_view_id, "form")],
+            "domain": domain,
+            "context": {
+                "search_default_pending_approval": 1,
+                "default_state": "pending_approval",
+                # Добавляем фильтры по дате, тренеру и корту для удобства менеджера
+            },
+            "help": _("Список тренировок, ожидающих одобрения менеджера. Кликните на запись, чтобы открыть форму с кнопками 'Одобрить' и 'Отклонить'."),
+        }
 
