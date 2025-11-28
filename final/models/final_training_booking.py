@@ -664,7 +664,70 @@ class FinalTrainingBooking(models.Model):
         if self.env.user.has_group("final.group_final_manager"):
             # Используем sudo() для чтения записей, чтобы обойти правила доступа к hr.employee
             # Важно: вызываем super() напрямую с sudo(), чтобы избежать рекурсии
-            return super(FinalTrainingBooking, self.sudo()).read(fields=fields, load=load)
+            try:
+                return super(FinalTrainingBooking, self.sudo()).read(fields=fields, load=load)
+            except AttributeError as e:
+                # Если возникает ошибка с _unknown объектами, используем альтернативный подход
+                if "'_unknown' object has no attribute 'id'" in str(e) or "'_unknown'" in str(e):
+                    # Читаем данные напрямую из записей, обрабатывая каждое поле отдельно
+                    result = []
+                    for record in self.sudo():
+                        record_data = {'id': record.id}
+                        
+                        # Определяем, какие поля нужно прочитать
+                        if fields is None:
+                            # Если поля не указаны, читаем все поля модели
+                            fields_to_read = list(self._fields.keys())
+                        else:
+                            fields_to_read = fields
+                        
+                        # Читаем каждое поле отдельно с обработкой ошибок
+                        for field_name in fields_to_read:
+                            # Пропускаем служебные поля и поля с точками (related поля)
+                            if field_name.startswith('_') or '.' in field_name:
+                                continue
+                            
+                            field = self._fields.get(field_name)
+                            if field:
+                                try:
+                                    if field.type == 'many2one':
+                                        # Для Many2one полей читаем с обработкой _unknown
+                                        try:
+                                            value = record[field_name]
+                                            if value and hasattr(value, 'id'):
+                                                record_data[field_name] = value.id
+                                            else:
+                                                record_data[field_name] = False
+                                        except (AttributeError, ValueError):
+                                            record_data[field_name] = False
+                                    elif field.type == 'many2many':
+                                        # Для Many2many полей читаем список ID
+                                        try:
+                                            value = record[field_name]
+                                            record_data[field_name] = value.ids if value else []
+                                        except (AttributeError, ValueError):
+                                            record_data[field_name] = []
+                                    elif field.type == 'one2many':
+                                        # Для One2many полей читаем список ID
+                                        try:
+                                            value = record[field_name]
+                                            record_data[field_name] = value.ids if value else []
+                                        except (AttributeError, ValueError):
+                                            record_data[field_name] = []
+                                    else:
+                                        # Для остальных полей читаем как обычно
+                                        try:
+                                            record_data[field_name] = record[field_name]
+                                        except (AttributeError, ValueError):
+                                            record_data[field_name] = False
+                                except Exception:
+                                    record_data[field_name] = False
+                        
+                        result.append(record_data)
+                    
+                    return result
+                else:
+                    raise
         
         return super().read(fields=fields, load=load)
     
