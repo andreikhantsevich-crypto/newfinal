@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Поиск тренировок -->
+        <record id="view_final_training_booking_search" model="ir.ui.view">
+            <field name="name">final.training.booking.search</field>
+            <field name="model">final.training.booking</field>
+            <field name="arch" type="xml">
+                <search string="Тренировки">
+                    <field name="name" string="Описание"/>
+                    <field name="trainer_id" string="Тренер"/>
+                    <field name="sport_center_id" string="Спортивный центр"/>
+                    <field name="tennis_court_id" string="Корт"/>
+                    <field name="training_type_id" string="Тип тренировки"/>
+                    <field name="client_ids" string="Клиент"/>
+                    
+                    <filter string="На одобрении" name="pending_approval" 
+                            domain="[('state', '=', 'pending_approval')]"/>
+                    <filter string="Подтвержденные" name="confirmed" 
+                            domain="[('state', '=', 'confirmed')]"/>
+                    <filter string="Завершенные" name="completed" 
+                            domain="[('state', '=', 'completed')]"/>
+                    <filter string="Отмененные" name="cancelled" 
+                            domain="[('state', '=', 'cancelled')]"/>
+                    <filter string="Сегодня" name="today" 
+                            domain="[('start_datetime', '>=', datetime.datetime.now().replace(hour=0, minute=0, second=0)), ('start_datetime', '&lt;', (datetime.datetime.now() + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0))]"/>
+                    <filter string="Эта неделя" name="this_week" 
+                            domain="[('start_datetime', '>=', (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday())).replace(hour=0, minute=0, second=0)), ('start_datetime', '&lt;', (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday()) + datetime.timedelta(days=7)).replace(hour=0, minute=0, second=0))]"/>
+                    
+                    <separator/>
+                    <filter string="Мои тренировки" name="my_trainings" 
+                            domain="[('trainer_id.user_id', '=', uid)]"
+                            groups="final.group_final_trainer"/>
+                    
+                    <group expand="0" string="Группировка">
+                        <filter string="По тренеру" name="group_trainer" 
+                                context="{'group_by': 'trainer_id'}"/>
+                        <filter string="По СЦ" name="group_center" 
+                                context="{'group_by': 'sport_center_id'}"/>
+                        <filter string="По корту" name="group_court" 
+                                context="{'group_by': 'tennis_court_id'}"/>
+                        <filter string="По типу" name="group_type" 
+                                context="{'group_by': 'training_type_id'}"/>
+                        <filter string="По статусу" name="group_state" 
+                                context="{'group_by': 'state'}"/>
+                        <filter string="По дате" name="group_date" 
+                                context="{'group_by': 'start_datetime:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Список тренировок -->
+        <record id="view_final_training_booking_list" model="ir.ui.view">
+            <field name="name">final.training.booking.list</field>
+            <field name="model">final.training.booking</field>
+            <field name="arch" type="xml">
+                <list string="Тренировки" create="1" delete="1" editable="bottom">
+                    <field name="name" string="Описание"/>
+                    <field name="start_datetime" string="Начало"/>
+                    <field name="end_datetime" string="Окончание"/>
+                    <field name="trainer_id" string="Тренер"/>
+                    <field name="sport_center_id" string="СЦ"/>
+                    <field name="tennis_court_id" string="Корт"/>
+                    <field name="training_type_id" string="Тип"/>
+                    <field name="client_ids" string="Клиенты" widget="many2many_tags"/>
+                    <field name="state" string="Статус" widget="badge" 
+                           decoration-success="state == 'confirmed'"
+                           decoration-warning="state == 'pending_approval'"
+                           decoration-danger="state == 'cancelled'"
+                           decoration-info="state == 'completed'"
+                           decoration-muted="state == 'draft'"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Форма тренировки -->
+        <record id="view_final_training_booking_form" model="ir.ui.view">
+            <field name="name">final.training.booking.form</field>
+            <field name="model">final.training.booking</field>
+            <field name="arch" type="xml">
+                <form string="Тренировка">
+                    <header>
+                        <button name="action_confirm" 
+                                string="Подтвердить" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="state != 'draft'"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_approve" 
+                                string="Одобрить" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="state != 'pending_approval'"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_complete" 
+                                string="Завершить" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="state != 'confirmed'"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_cancel" 
+                                string="Отменить" 
+                                type="object"
+                                invisible="state in ('completed', 'cancelled')"/>
+                        <button name="action_set_draft" 
+                                string="В черновик" 
+                                type="object"
+                                invisible="state != 'cancelled'"/>
+                        <field name="state" widget="statusbar" 
+                               statusbar_visible="draft,pending_approval,confirmed,completed"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1" placeholder="Название тренировки"/>
+                            </h1>
+                        </div>
+                        
+                        <group>
+                            <group string="Основная информация">
+                                <field name="sport_center_id" 
+                                       options="{'no_open': True, 'no_create': True}"/>
+                                <field name="tennis_court_id" 
+                                       options="{'no_open': True, 'no_create': True}"/>
+                                <field name="trainer_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       readonly="state != 'draft'"/>
+                                <field name="training_type_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       readonly="state != 'draft'"/>
+                                <field name="client_ids" 
+                                       widget="many2many_tags"
+                                       options="{'no_create_edit': True}"
+                                       readonly="state != 'draft'"/>
+                            </group>
+                            <group string="Время и продолжительность">
+                                <field name="start_datetime" 
+                                       widget="datetime"
+                                       readonly="state not in ('draft', 'pending_approval')"/>
+                                <field name="end_datetime" 
+                                       widget="datetime"
+                                       readonly="state not in ('draft', 'pending_approval')"/>
+                                <field name="duration_hours" readonly="1"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group string="Повторяющаяся тренировка" 
+                                   invisible="not is_recurring">
+                                <field name="is_recurring" invisible="1"/>
+                                <field name="recurring_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       readonly="1"/>
+                            </group>
+                            <group string="Информация о создании">
+                                <field name="created_by" readonly="1"/>
+                                <field name="approved_by" readonly="1" 
+                                       invisible="not approved_by"/>
+                                <field name="approved_date" readonly="1" 
+                                       invisible="not approved_date"/>
+                            </group>
+                        </group>
+                        
+                        <notebook>
+                            <page string="Финансовая информация" 
+                                  name="financial_info"
+                                  groups="final.group_final_manager,final.group_final_director">
+                                <group>
+                                    <group string="Стоимость">
+                                        <field name="price_per_hour" readonly="1"/>
+                                        <field name="total_price" readonly="1"/>
+                                    </group>
+                                    <group string="Прибыль">
+                                        <field name="trainer_rate_per_hour" readonly="1"/>
+                                        <field name="trainer_rate_amount" readonly="1"/>
+                                        <field name="profit_amount" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
+                        
+                        <field name="currency_id" invisible="1"/>
+                        <field name="company_id" invisible="1"/>
+                        <field name="color" invisible="1"/>
+                        <field name="telegram_notification_sent" invisible="1"/>
+                        <field name="reminder_sent" invisible="1"/>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Календарь тренировок (будет дополнен на этапе 6) -->
+        <record id="view_final_training_booking_calendar" model="ir.ui.view">
+            <field name="name">final.training.booking.calendar</field>
+            <field name="model">final.training.booking</field>
+            <field name="arch" type="xml">
+                <calendar string="Расписание тренировок" 
+                          mode="week"
+                          date_start="start_datetime"
+                          date_stop="end_datetime"
+                          color="color"
+                          quick_create="0"
+                          event_open_popup="true">
+                    <field name="name"/>
+                    <field name="trainer_id"/>
+                    <field name="tennis_court_id"/>
+                    <field name="state"/>
+                </calendar>
+            </field>
+        </record>
+
+        <!-- Action для списка тренировок (менеджер и тренер) -->
+        <record id="action_final_training_booking" model="ir.actions.act_window">
+            <field name="name">Тренировки</field>
+            <field name="res_model">final.training.booking</field>
+            <field name="view_mode">list,form,calendar</field>
+            <field name="view_id" ref="view_final_training_booking_list"/>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Создайте первую запись на тренировку
+                </p>
+                <p>
+                    Записи на тренировки позволяют управлять расписанием занятий,
+                    отслеживать клиентов и рассчитывать финансовые показатели.
+                </p>
+                <p>
+                    Используйте меню "Записаться на тренировку" для удобного создания записей.
+                </p>
+            </field>
+        </record>
+
+    </data>
+</odoo>
+

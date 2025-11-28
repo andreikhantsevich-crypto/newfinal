@@ -26,6 +26,8 @@
         'views/apply_trainer_wizard_views.xml',
         'views/trainer_cabinet_views.xml',
         'views/final_center_training_price_views.xml',
+        'views/final_training_booking_views.xml',
+        'views/training_booking_wizard_views.xml',
         'views/final_menu.xml',
     ],
     'demo': [],

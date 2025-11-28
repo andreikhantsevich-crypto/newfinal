@@ -5,6 +5,31 @@ from odoo.exceptions import ValidationError
 _logger = logging.getLogger(__name__)
 
 
+class HrEmployeePublic(models.Model):
+    """Расширение hr.employee.public для доступа к нашим полям"""
+    _inherit = "hr.employee.public"
+    
+    sport_center_id = fields.Many2one(
+        "final.sport.center",
+        string="Спортивный центр",
+        related="employee_id.sport_center_id",
+        readonly=True,
+        store=False,
+    )
+    is_final_trainer = fields.Boolean(
+        string="Тренер СЦ",
+        related="employee_id.is_final_trainer",
+        readonly=True,
+        store=False,
+    )
+    is_final_manager = fields.Boolean(
+        string="Менеджер СЦ",
+        related="employee_id.is_final_manager",
+        readonly=True,
+        store=False,
+    )
+
+
 class HrEmployee(models.Model):
     _inherit = "hr.employee"
 

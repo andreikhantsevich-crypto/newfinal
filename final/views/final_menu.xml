@@ -127,6 +127,18 @@
                   action="action_final_tennis_court"
                   sequence="15"
                   groups="final.group_final_director,final.group_final_manager"/>
+        <menuitem id="menu_final_training_booking"
+                  name="Тренировки"
+                  parent="menu_final_root"
+                  action="action_final_training_booking"
+                  sequence="16"
+                  groups="final.group_final_director,final.group_final_manager,final.group_final_trainer"/>
+        <menuitem id="menu_final_training_booking_wizard"
+                  name="Записаться на тренировку"
+                  parent="menu_final_root"
+                  action="action_training_booking_wizard"
+                  sequence="17"
+                  groups="final.group_final_manager,final.group_final_trainer"/>
         <menuitem id="menu_final_training_types"
                   name="Виды тренировок"
                   parent="menu_final_root"
@@ -179,6 +191,30 @@
                   groups="final.group_final_trainer"/>
         
         <record id="menu_final_trainer_schedule" model="ir.ui.menu">
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
+            <field name="parent_id" ref="menu_final_root_trainer"/>
+        </record>
+        
+        <menuitem id="menu_final_trainer_training_booking"
+                  name="Тренировки"
+                  parent="menu_final_root_trainer"
+                  action="action_final_training_booking"
+                  sequence="4"
+                  groups="final.group_final_trainer"/>
+        
+        <record id="menu_final_trainer_training_booking" model="ir.ui.menu">
+            <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
+            <field name="parent_id" ref="menu_final_root_trainer"/>
+        </record>
+        
+        <menuitem id="menu_final_trainer_training_booking_wizard"
+                  name="Записаться на тренировку"
+                  parent="menu_final_root_trainer"
+                  action="action_training_booking_wizard"
+                  sequence="5"
+                  groups="final.group_final_trainer"/>
+        
+        <record id="menu_final_trainer_training_booking_wizard" model="ir.ui.menu">
             <field name="groups_id" eval="[(6, 0, [ref('final.group_final_trainer')])]"/>
             <field name="parent_id" ref="menu_final_root_trainer"/>
         </record>

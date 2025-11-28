@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- View формы wizard записи на тренировку -->
+        <record id="view_training_booking_wizard_form" model="ir.ui.view">
+            <field name="name">final.training.booking.wizard.form</field>
+            <field name="model">final.training.booking.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Записаться на тренировку">
+                    <sheet>
+                        <group>
+                            <group string="Основная информация">
+                                <field name="sport_center_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       required="1"/>
+                                <field name="available_center_ids" invisible="1"/>
+                                <field name="tennis_court_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       required="1"/>
+                                <field name="training_type_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       required="1"/>
+                                <field name="trainer_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       required="1"
+                                       readonly="is_trainer_readonly"
+                                       placeholder="Выберите тренера из списка СЦ"
+                                       domain="[('id', 'in', available_trainer_ids)]"/>
+                                <field name="available_trainer_ids" invisible="1"/>
+                            </group>
+                            <group string="Время">
+                                <field name="date" required="1"/>
+                                <field name="start_time" required="1"
+                                       widget="float_time"
+                                       help="Выберите время начала тренировки"/>
+                                <field name="duration" required="1"
+                                       help="Продолжительность в часах (минимум 1, шаг 1 час)"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <field name="client_count_info" widget="text" readonly="1"/>
+                        </group>
+                        
+                        <notebook>
+                            <page string="Клиенты" name="page_clients">
+                                <group>
+                                    <field name="client_ids" 
+                                           widget="many2many_tags"
+                                           options="{'no_create_edit': True}"
+                                           required="1"
+                                           domain="[('is_company', '=', False)]"/>
+                                    <div class="alert alert-info" role="alert">
+                                        <strong>Требования по клиентам:</strong>
+                                        <ul>
+                                            <li>Индивидуальная: 1 клиент</li>
+                                            <li>Сплит: ровно 2 клиента</li>
+                                            <li>Групповая: от 3 до 5 клиентов</li>
+                                        </ul>
+                                    </div>
+                                </group>
+                            </page>
+                            <page string="Доступные слоты" name="page_slots">
+                                <group>
+                                    <field name="available_slots_info" widget="html" readonly="1"/>
+                                    <div class="alert alert-warning" role="alert">
+                                        <strong>Внимание:</strong> Выбранное время не должно пересекаться 
+                                        с уже занятыми слотами на этом корте.
+                                    </div>
+                                </group>
+                            </page>
+                            <page string="Повторяющаяся тренировка" name="page_recurring">
+                                <group>
+                                    <field name="is_recurring"/>
+                                    <field name="recurring_end_date" 
+                                           invisible="not is_recurring"
+                                           required="is_recurring"/>
+                                    <field name="recurring_days_of_week" 
+                                           invisible="not is_recurring"
+                                           required="is_recurring"
+                                           placeholder="0,2,4 (Понедельник, Среда, Пятница)"
+                                           help="Через запятую: 0=Пн, 1=Вт, 2=Ср, 3=Чт, 4=Пт, 5=Сб, 6=Вс"/>
+                                    <div class="alert alert-info" role="alert" invisible="not is_recurring">
+                                        <strong>Повторяющаяся тренировка:</strong>
+                                        <p>Будет создана основная запись, повторения будут сгенерированы позже.</p>
+                                    </div>
+                                </group>
+                            </page>
+                        </notebook>
+                        
+                        <field name="currency_id" invisible="1"/>
+                    </sheet>
+                    <footer>
+                        <button name="action_create_booking" 
+                                string="Создать запись" 
+                                type="object"
+                                class="oe_highlight"
+                                icon="fa-check"/>
+                        <button string="Отмена" 
+                                class="btn-secondary" 
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <!-- Action для wizard записи на тренировку -->
+        <record id="action_training_booking_wizard" model="ir.actions.act_window">
+            <field name="name">Записаться на тренировку</field>
+            <field name="res_model">final.training.booking.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="view_id" ref="view_training_booking_wizard_form"/>
+            <field name="context">{}</field>
+        </record>
+
+    </data>
+</odoo>
+
