@@ -738,9 +738,43 @@ class TrainingBookingWizard(models.TransientModel):
                 (trainer_name, self.sport_center_id.name)
             )
         
-        # Определяем статус в зависимости от роли пользователя
+        # Проверка баланса клиентов (только для менеджера, т.к. тренер не видит баланс)
         user = self.env.user
         is_trainer = user.has_group("final.group_final_trainer")
+        is_manager = user.has_group("final.group_final_manager")
+        
+        # Получаем цену за час для расчета стоимости
+        price_per_hour = 0.0
+        if self.sport_center_id and self.training_type_id:
+            price_record = self.env["final.center.training.price"].search([
+                ("center_id", "=", self.sport_center_id.id),
+                ("training_type_id", "=", self.training_type_id.id),
+            ], limit=1)
+            if price_record:
+                price_per_hour = price_record.price_per_hour
+        
+        # Рассчитываем стоимость для каждого клиента
+        total_cost_per_client = price_per_hour * self.duration
+        
+        # Проверяем баланс клиентов (только для менеджера)
+        if is_manager and total_cost_per_client > 0:
+            insufficient_balance_clients = []
+            for client in self.client_ids:
+                if client.balance < total_cost_per_client:
+                    insufficient_balance_clients.append(
+                        f"{client.name} (баланс: {client.balance} {client.balance_currency_id.symbol if client.balance_currency_id else ''}, требуется: {total_cost_per_client} {client.balance_currency_id.symbol if client.balance_currency_id else ''})"
+                    )
+            
+            if insufficient_balance_clients:
+                raise ValidationError(
+                    _(
+                        "Недостаточно средств на балансе у следующих клиентов:\n%s\n"
+                        "Пополните баланс перед созданием записи на тренировку."
+                    )
+                    % "\n".join(insufficient_balance_clients)
+                )
+        
+        # Определяем статус в зависимости от роли пользователя
         if is_trainer:
             state = "pending_approval"  # Тренер создает - требуется апрув
         else:

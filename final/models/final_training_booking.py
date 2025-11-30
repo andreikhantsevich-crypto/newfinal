@@ -203,6 +203,12 @@ class FinalTrainingBooking(models.Model):
         default=0,
         help="Цвет для отображения в календаре",
     )
+    clients_balance_info = fields.Html(
+        string="Информация о балансе клиентов",
+        compute="_compute_clients_balance_info",
+        store=False,
+        help="Информация о балансе клиентов для менеджера",
+    )
 
     _sql_constraints = [
         (
@@ -345,6 +351,62 @@ class FinalTrainingBooking(models.Model):
         """Расчет прибыли"""
         for record in self:
             record.profit_amount = record.total_price - record.trainer_rate_amount
+
+    @api.depends("client_ids", "price_per_hour", "duration_hours", "state")
+    def _compute_clients_balance_info(self):
+        """Вычисляет информацию о балансе клиентов для отображения менеджеру"""
+        for record in self:
+            if not record.client_ids or record.state != "pending_approval":
+                record.clients_balance_info = ""
+                continue
+            
+            # Рассчитываем сумму списания для каждого клиента
+            amount_per_client = record.price_per_hour * record.duration_hours
+            
+            html_parts = ["<div style='margin: 10px 0;'>"]
+            html_parts.append(f"<strong>Сумма списания с каждого клиента: {amount_per_client} {record.currency_id.symbol if record.currency_id else ''}</strong><br/><br/>")
+            html_parts.append("<table class='table table-bordered' style='width: 100%;'>")
+            html_parts.append("<thead><tr><th>Клиент</th><th>Баланс</th><th>Статус</th></tr></thead>")
+            html_parts.append("<tbody>")
+            
+            all_sufficient = True
+            for client in record.client_ids:
+                balance = client.balance
+                currency_symbol = client.balance_currency_id.symbol if client.balance_currency_id else ""
+                is_sufficient = balance >= amount_per_client
+                
+                if not is_sufficient:
+                    all_sufficient = False
+                
+                status = "✓ Достаточно" if is_sufficient else "✗ Недостаточно"
+                status_color = "green" if is_sufficient else "red"
+                
+                html_parts.append(
+                    f"<tr>"
+                    f"<td>{client.name}</td>"
+                    f"<td>{balance} {currency_symbol}</td>"
+                    f"<td style='color: {status_color}; font-weight: bold;'>{status}</td>"
+                    f"</tr>"
+                )
+            
+            html_parts.append("</tbody></table>")
+            
+            if not all_sufficient:
+                html_parts.append(
+                    "<div class='alert alert-danger' role='alert' style='margin-top: 10px;'>"
+                    "<strong>Внимание!</strong> У некоторых клиентов недостаточно средств на балансе. "
+                    "Пополните баланс перед одобрением тренировки."
+                    "</div>"
+                )
+            else:
+                html_parts.append(
+                    "<div class='alert alert-success' role='alert' style='margin-top: 10px;'>"
+                    "✓ У всех клиентов достаточно средств на балансе."
+                    "</div>"
+                )
+            
+            html_parts.append("</div>")
+            record.clients_balance_info = "".join(html_parts)
 
     @api.onchange("sport_center_id")
     def _onchange_sport_center_id(self):
@@ -513,6 +575,27 @@ class FinalTrainingBooking(models.Model):
         if self.state != "pending_approval":
             raise ValidationError(_("Можно одобрить только записи со статусом 'На одобрении'."))
         
+        # Проверка баланса клиентов перед одобрением
+        # Рассчитываем сумму списания для каждого клиента
+        amount_per_client = self.price_per_hour * self.duration_hours
+        
+        if amount_per_client > 0:
+            insufficient_balance_clients = []
+            for client in self.client_ids:
+                if client.balance < amount_per_client:
+                    insufficient_balance_clients.append(
+                        f"{client.name} (баланс: {client.balance} {client.balance_currency_id.symbol if client.balance_currency_id else ''}, требуется: {amount_per_client} {client.balance_currency_id.symbol if client.balance_currency_id else ''})"
+                    )
+            
+            if insufficient_balance_clients:
+                raise ValidationError(
+                    _(
+                        "Нельзя одобрить тренировку: недостаточно средств на балансе у следующих клиентов:\n%s\n"
+                        "Пополните баланс клиентов перед одобрением тренировки."
+                    )
+                    % "\n".join(insufficient_balance_clients)
+                )
+        
         self.write({
             "state": "confirmed",
             "approved_by": self.env.user.id,
@@ -639,8 +722,69 @@ class FinalTrainingBooking(models.Model):
 
     def action_complete(self):
         """Завершение тренировки (списание баланса)"""
-        # Списание баланса будет реализовано в следующем этапе (баланс клиента)
+        self.ensure_one()
+        
+        # Проверяем что тренировка подтверждена
+        if self.state != "confirmed":
+            raise ValidationError(
+                _("Можно завершить только подтвержденные тренировки.")
+            )
+        
+        # Проверяем что тренировка еще не завершена
+        if self.state == "completed":
+            raise ValidationError(_("Тренировка уже завершена."))
+        
+        # Рассчитываем сумму списания для каждого клиента
+        # Сумма = цена за час * продолжительность
+        amount_per_client = self.price_per_hour * self.duration_hours
+        
+        # Проверяем баланс всех клиентов перед списанием
+        insufficient_balance_clients = []
+        for client in self.client_ids:
+            if client.balance < amount_per_client:
+                insufficient_balance_clients.append(
+                    f"{client.name} (баланс: {client.balance} {client.balance_currency_id.symbol if client.balance_currency_id else ''}, требуется: {amount_per_client} {client.balance_currency_id.symbol if client.balance_currency_id else ''})"
+                )
+        
+        if insufficient_balance_clients:
+            raise ValidationError(
+                _(
+                    "Недостаточно средств на балансе у следующих клиентов:\n%s\n"
+                    "Пополните баланс перед завершением тренировки."
+                )
+                % "\n".join(insufficient_balance_clients)
+            )
+        
+        # Списываем средства с баланса всех клиентов
+        transaction_model = self.env["final.balance.transaction"]
+        for client in self.client_ids:
+            description = _(
+                "Списание за тренировку '%s' (%s - %s)"
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+            )
+            
+            try:
+                transaction_model.action_withdrawal(
+                    client.id,
+                    amount_per_client,
+                    self.id,
+                    description,
+                )
+            except ValidationError as e:
+                # Если произошла ошибка при списании, откатываем все транзакции
+                raise ValidationError(
+                    _(
+                        "Ошибка при списании средств с баланса клиента '%s': %s"
+                    )
+                    % (client.name, str(e))
+                )
+        
+        # Обновляем статус тренировки
         self.write({"state": "completed"})
+        
         return True
 
     def action_cancel(self):

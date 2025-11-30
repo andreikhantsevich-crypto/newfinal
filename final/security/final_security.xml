@@ -205,6 +205,23 @@
             <field name="domain_force">[('user_id', '=', user.id)]</field>
         </record>
 
+        <!-- Record rules: Клиенты (res.partner) -->
+        <!-- Директор видит всех клиентов -->
+        <record id="final_rule_res_partner_director" model="ir.rule">
+            <field name="name">res.partner director access</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+        
+        <!-- Менеджер видит всех клиентов (можно ограничить только клиентами своего СЦ, но это сложнее) -->
+        <record id="final_rule_res_partner_manager" model="ir.rule">
+            <field name="name">res.partner manager access</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('is_company', '=', False)]</field>
+        </record>
+
         <!-- Record rules: Записи на тренировки -->
         <record id="final_rule_training_booking_director" model="ir.rule">
             <field name="name">final.training.booking director access</field>

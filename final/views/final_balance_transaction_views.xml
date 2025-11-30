@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Поиск транзакций -->
+        <record id="view_final_balance_transaction_search" model="ir.ui.view">
+            <field name="name">final.balance.transaction.search</field>
+            <field name="model">final.balance.transaction</field>
+            <field name="arch" type="xml">
+                <search string="Транзакции баланса">
+                    <field name="partner_id" string="Клиент"/>
+                    <field name="transaction_type" string="Тип"/>
+                    <field name="booking_id" string="Тренировка"/>
+                    <field name="date" string="Дата"/>
+                    
+                    <filter string="Пополнения" name="deposits" 
+                            domain="[('transaction_type', '=', 'deposit')]"/>
+                    <filter string="Списания" name="withdrawals" 
+                            domain="[('transaction_type', '=', 'withdrawal')]"/>
+                    
+                    <filter string="Сегодня" name="today" 
+                            domain="[('date', '>=', datetime.datetime.now().replace(hour=0, minute=0, second=0)), ('date', '&lt;', (datetime.datetime.now() + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0))]"/>
+                    <filter string="Эта неделя" name="this_week" 
+                            domain="[('date', '>=', (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday())).replace(hour=0, minute=0, second=0)), ('date', '&lt;', (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday()) + datetime.timedelta(days=7)).replace(hour=0, minute=0, second=0))]"/>
+                    <filter string="Этот месяц" name="this_month" 
+                            domain="[('date', '>=', datetime.datetime.now().replace(day=1, hour=0, minute=0, second=0)), ('date', '&lt;', (datetime.datetime.now().replace(day=1) + datetime.timedelta(days=32)).replace(day=1, hour=0, minute=0, second=0))]"/>
+                    
+                    <group expand="0" string="Группировка">
+                        <filter string="По клиенту" name="group_partner" 
+                                context="{'group_by': 'partner_id'}"/>
+                        <filter string="По типу" name="group_type" 
+                                context="{'group_by': 'transaction_type'}"/>
+                        <filter string="По дате" name="group_date" 
+                                context="{'group_by': 'date:day'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Список транзакций -->
+        <record id="view_final_balance_transaction_tree" model="ir.ui.view">
+            <field name="name">final.balance.transaction.list</field>
+            <field name="model">final.balance.transaction</field>
+            <field name="arch" type="xml">
+                <list string="Транзакции баланса" decoration-success="transaction_type == 'deposit'" decoration-danger="transaction_type == 'withdrawal'">
+                    <field name="date"/>
+                    <field name="partner_id" string="Клиент"/>
+                    <field name="transaction_type" string="Тип"/>
+                    <field name="amount" widget="monetary"/>
+                    <field name="booking_id" string="Тренировка"/>
+                    <field name="description"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Форма транзакции -->
+        <record id="view_final_balance_transaction_form" model="ir.ui.view">
+            <field name="name">final.balance.transaction.form</field>
+            <field name="model">final.balance.transaction</field>
+            <field name="arch" type="xml">
+                <form string="Транзакция баланса">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="partner_id" options="{'no_create': True}"/>
+                                <field name="transaction_type"/>
+                                <field name="amount" widget="monetary"/>
+                                <field name="currency_id" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="date"/>
+                                <field name="booking_id" options="{'no_create': True}"/>
+                            </group>
+                        </group>
+                        <group>
+                            <field name="description" placeholder="Описание транзакции..."/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Действие для открытия списка транзакций -->
+        <record id="action_final_balance_transaction" model="ir.actions.act_window">
+            <field name="name">Транзакции баланса</field>
+            <field name="res_model">final.balance.transaction</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[]</field>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Транзакции баланса клиентов
+                </p>
+                <p>
+                    Здесь отображается история всех пополнений и списаний баланса клиентов.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+
