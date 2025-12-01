@@ -200,8 +200,9 @@ class FinalTrainingBooking(models.Model):
     )
     color = fields.Integer(
         string="Цвет",
-        default=0,
-        help="Цвет для отображения в календаре",
+        compute="_compute_color",
+        store=True,
+        help="Цвет для отображения в календаре (на основе статуса)",
     )
     clients_balance_info = fields.Html(
         string="Информация о балансе клиентов",
@@ -351,6 +352,25 @@ class FinalTrainingBooking(models.Model):
         """Расчет прибыли"""
         for record in self:
             record.profit_amount = record.total_price - record.trainer_rate_amount
+
+    @api.depends("state")
+    def _compute_color(self):
+        """Вычисление цвета для календаря на основе статуса"""
+        # Цвета для статусов:
+        # 0 - черный (draft)
+        # 1 - красный (cancelled)
+        # 2 - оранжевый (pending_approval)
+        # 3 - желтый (confirmed)
+        # 4 - зеленый (completed)
+        color_map = {
+            "draft": 0,
+            "cancelled": 1,
+            "pending_approval": 2,
+            "confirmed": 3,
+            "completed": 4,
+        }
+        for record in self:
+            record.color = color_map.get(record.state, 0)
 
     @api.depends("client_ids", "price_per_hour", "duration_hours", "state")
     def _compute_clients_balance_info(self):
@@ -548,14 +568,19 @@ class FinalTrainingBooking(models.Model):
         """Проверка что тренер привязан к выбранному СЦ"""
         for record in self:
             if record.trainer_id and record.sport_center_id:
-                # Используем sudo() для чтения trainer_center_ids, чтобы обойти проблемы с доступом
-                trainer_with_sudo = record.trainer_id.sudo()
-                if record.sport_center_id not in trainer_with_sudo.trainer_center_ids:
+                # Используем прямой поиск через final.center.trainer с sudo(), чтобы гарантировать проверку всех СЦ
+                center_trainer_record = self.env["final.center.trainer"].sudo().search([
+                    ("employee_id", "=", record.trainer_id.id),
+                    ("sport_center_id", "=", record.sport_center_id.id),
+                ], limit=1)
+                if not center_trainer_record:
+                    # Используем sudo() для чтения имени тренера, чтобы обойти проблемы с доступом
+                    trainer_name = record.trainer_id.sudo().name if record.trainer_id.exists() else _("Неизвестный тренер")
                     raise ValidationError(
                         _(
                             "Тренер '%s' не привязан к спортивному центру '%s'. "
                             "Сначала привяжите тренера к центру."
-                        ) % (record.trainer_id.name, record.sport_center_id.name)
+                        ) % (trainer_name, record.sport_center_id.name)
                     )
 
     def action_confirm(self):

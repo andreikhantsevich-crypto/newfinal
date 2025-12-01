@@ -268,7 +268,7 @@
             </field>
         </record>
 
-        <!-- Календарь тренировок (будет дополнен на этапе 6) -->
+        <!-- Календарь тренировок -->
         <record id="view_final_training_booking_calendar" model="ir.ui.view">
             <field name="name">final.training.booking.calendar</field>
             <field name="model">final.training.booking</field>
@@ -277,13 +277,15 @@
                           mode="week"
                           date_start="start_datetime"
                           date_stop="end_datetime"
-                          color="color"
+                          color="state"
                           quick_create="0"
                           event_open_popup="true">
                     <field name="name"/>
                     <field name="trainer_id"/>
                     <field name="tennis_court_id"/>
+                    <field name="sport_center_id"/>
                     <field name="state"/>
+                    <field name="training_type_id"/>
                 </calendar>
             </field>
         </record>

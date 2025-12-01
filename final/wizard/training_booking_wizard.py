@@ -12,7 +12,6 @@ class TrainingBookingWizard(models.TransientModel):
         "final.sport.center",
         string="Спортивный центр",
         required=True,
-        domain="[('id', 'in', available_center_ids)]",
     )
     
     # Computed поле для домена СЦ (для тренера - только его СЦ)
@@ -127,7 +126,13 @@ class TrainingBookingWizard(models.TransientModel):
                 # Используем sudo() для чтения employee_id, чтобы обойти правила доступа
                 trainer_employee = user.sudo().employee_id
                 if trainer_employee and trainer_employee.is_final_trainer:
-                    record.available_center_ids = trainer_employee.trainer_center_ids
+                    # Читаем напрямую через final.center.trainer с sudo(), чтобы гарантировать получение всех СЦ
+                    # Это обходит проблемы с вычисляемым полем trainer_center_ids
+                    center_trainer_records = self.env["final.center.trainer"].sudo().search([
+                        ("employee_id", "=", trainer_employee.id),
+                    ])
+                    center_ids = center_trainer_records.mapped("sport_center_id")
+                    record.available_center_ids = center_ids
                 else:
                     record.available_center_ids = False
             elif user.has_group("final.group_final_manager"):
@@ -261,8 +266,13 @@ class TrainingBookingWizard(models.TransientModel):
             trainer_employee = user.sudo().employee_id
             if trainer_employee and trainer_employee.is_final_trainer:
                 # Автозаполнение СЦ из первого центра тренера
-                if trainer_employee.trainer_center_ids:
-                    res["sport_center_id"] = trainer_employee.trainer_center_ids[0].id
+                # Читаем напрямую через final.center.trainer с sudo(), чтобы гарантировать получение всех СЦ
+                center_trainer_records = self.env["final.center.trainer"].sudo().search([
+                    ("employee_id", "=", trainer_employee.id),
+                ])
+                center_ids = center_trainer_records.mapped("sport_center_id")
+                if center_ids:
+                    res["sport_center_id"] = center_ids[0].id
                     # Устанавливаем тренера (он же инициирует тренировку)
                     # Используем только ID, чтобы избежать проверки доступа при установке значения
                     res["trainer_id"] = trainer_employee.id
@@ -285,6 +295,42 @@ class TrainingBookingWizard(models.TransientModel):
         
         return res
     
+    @api.model
+    def fields_get(self, allfields=None, attributes=None):
+        """Переопределяем для динамического домена sport_center_id"""
+        res = super().fields_get(allfields=allfields, attributes=attributes)
+        
+        if 'sport_center_id' in res:
+            user = self.env.user
+            center_ids = []
+            
+            if user.has_group("final.group_final_trainer"):
+                trainer_employee = user.sudo().employee_id
+                if trainer_employee and trainer_employee.is_final_trainer:
+                    # Читаем напрямую через final.center.trainer с sudo()
+                    center_trainer_records = self.env["final.center.trainer"].sudo().search([
+                        ("employee_id", "=", trainer_employee.id),
+                    ])
+                    center_ids = center_trainer_records.mapped("sport_center_id").ids
+            elif user.has_group("final.group_final_manager"):
+                manager_employee = user.sudo().employee_id
+                if manager_employee and manager_employee.is_final_manager:
+                    center = self.env["final.sport.center"].search([
+                        ("manager_id", "=", manager_employee.id),
+                    ], limit=1)
+                    if center:
+                        center_ids = [center.id]
+            else:
+                # Для директора - все СЦ
+                center_ids = self.env["final.sport.center"].search([]).ids
+            
+            if center_ids:
+                res['sport_center_id']['domain'] = [('id', 'in', center_ids)]
+            else:
+                res['sport_center_id']['domain'] = [('id', '=', False)]
+        
+        return res
+    
 
     @api.onchange("sport_center_id")
     def _onchange_sport_center_id(self):
@@ -302,7 +348,12 @@ class TrainingBookingWizard(models.TransientModel):
                 trainer_employee = user.sudo().employee_id
                 if trainer_employee and trainer_employee.is_final_trainer:
                     # Проверяем, привязан ли тренер к выбранному СЦ
-                    if self.sport_center_id in trainer_employee.trainer_center_ids:
+                    # Читаем напрямую через final.center.trainer с sudo(), чтобы гарантировать получение всех СЦ
+                    center_trainer_record = self.env["final.center.trainer"].sudo().search([
+                        ("employee_id", "=", trainer_employee.id),
+                        ("sport_center_id", "=", self.sport_center_id.id),
+                    ], limit=1)
+                    if center_trainer_record:
                         # Тренер привязан к этому СЦ - устанавливаем его
                         # Используем sudo() при установке значения через write(), чтобы обойти проверку доступа
                         self.sudo().write({"trainer_id": trainer_employee.id})
@@ -728,10 +779,15 @@ class TrainingBookingWizard(models.TransientModel):
             )
         
         # Проверяем, что тренер привязан к СЦ
-        # Используем sudo() для чтения trainer_center_ids и имени, чтобы обойти проблемы с доступом
-        trainer_with_sudo = self.env["hr.employee"].sudo().browse(trainer_id)
-        if self.sport_center_id not in trainer_with_sudo.trainer_center_ids:
-            trainer_name = trainer_with_sudo.name
+        # Используем прямой поиск через final.center.trainer с sudo(), чтобы гарантировать проверку всех СЦ
+        center_trainer_record = self.env["final.center.trainer"].sudo().search([
+            ("employee_id", "=", trainer_id),
+            ("sport_center_id", "=", self.sport_center_id.id),
+        ], limit=1)
+        if not center_trainer_record:
+            # Используем sudo() для чтения имени тренера, чтобы обойти проблемы с доступом
+            trainer_with_sudo = self.env["hr.employee"].sudo().browse(trainer_id)
+            trainer_name = trainer_with_sudo.name if trainer_with_sudo.exists() else _("Неизвестный тренер")
             raise ValidationError(
                 _("Тренер '%s' не привязан к спортивному центру '%s'.") %
                 (trainer_name, self.sport_center_id.name)

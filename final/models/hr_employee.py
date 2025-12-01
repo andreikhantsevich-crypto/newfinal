@@ -62,6 +62,13 @@ class HrEmployee(models.Model):
         compute="_compute_trainer_center_ids",
         compute_sudo=True,
     )
+    manager_center_ids = fields.Many2many(
+        "final.sport.center",
+        string="Центры менеджера",
+        compute="_compute_manager_center_ids",
+        compute_sudo=True,
+        help="Спортивные центры, где сотрудник является менеджером",
+    )
     
     # Related поля для личного кабинета тренера
     trainer_login = fields.Char(
@@ -96,6 +103,18 @@ class HrEmployee(models.Model):
             centers = employee.center_trainer_ids.mapped("sport_center_id")
             employee.trainer_center_ids = centers
             employee.trainer_center_count = len(centers)
+
+    @api.depends("is_final_manager")
+    def _compute_manager_center_ids(self):
+        """Вычисляет СЦ, где сотрудник является менеджером"""
+        SportCenter = self.env["final.sport.center"]
+        for employee in self:
+            if employee.is_final_manager:
+                # Находим СЦ, где сотрудник является менеджером
+                centers = SportCenter.search([("manager_id", "=", employee.id)])
+                employee.manager_center_ids = centers
+            else:
+                employee.manager_center_ids = False
     
     @api.model
     def action_open_trainer_cabinet(self):

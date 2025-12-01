@@ -48,7 +48,7 @@
             <field name="name">final.sport.center manager access</field>
             <field name="model_id" ref="final.model_final_sport_center"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('id', 'in', user.employee_id.sport_center_id.ids)]</field>
+            <field name="domain_force">[('id', 'in', user.employee_id.manager_center_ids.ids)]</field>
         </record>
 
         <!-- Тренер видит ВСЕ спортивные центры (для выбора места работы) -->
@@ -71,7 +71,7 @@
             <field name="name">final.tennis.court manager access</field>
             <field name="model_id" ref="final.model_final_tennis_court"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.manager_center_ids.ids)]</field>
         </record>
 
         <!-- Тренер видит все теннисные корты (для просмотра информации о СЦ) -->
@@ -117,7 +117,7 @@
             <field name="name">final.center.trainer manager access</field>
             <field name="model_id" ref="final.model_final_center_trainer"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.manager_center_ids.ids)]</field>
         </record>
 
         <!-- Тренер видит и может создавать свои привязки к СЦ -->
@@ -170,7 +170,7 @@
             <field name="name">final.center.training.price manager access</field>
             <field name="model_id" ref="final.model_final_center_training_price"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+            <field name="domain_force">[('center_id', 'in', user.employee_id.manager_center_ids.ids)]</field>
         </record>
 
         <!-- Тренер видит цены на тренировки во всех СЦ (только чтение) -->
@@ -234,7 +234,7 @@
             <field name="name">final.training.booking manager access</field>
             <field name="model_id" ref="final.model_final_training_booking"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.manager_center_ids.ids)]</field>
         </record>
 
         <record id="final_rule_training_booking_trainer" model="ir.rule">
@@ -256,7 +256,7 @@
             <field name="name">final.training.recurring manager access</field>
             <field name="model_id" ref="final.model_final_training_recurring"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.manager_center_ids.ids)]</field>
         </record>
 
         <record id="final_rule_training_recurring_trainer" model="ir.rule">
