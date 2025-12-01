@@ -32,6 +32,7 @@
         'views/final_balance_transaction_views.xml',
         'views/res_partner_views.xml',
         'views/balance_deposit_wizard_views.xml',
+        'views/final_training_recurring_views.xml',
         'views/final_menu.xml',
     ],
     'demo': [],

@@ -13,25 +13,43 @@
                     <field name="tennis_court_id" string="Корт"/>
                     <field name="training_type_id" string="Тип тренировки"/>
                     <field name="client_ids" string="Клиент"/>
+                    <field name="start_datetime" string="Дата начала"/>
                     
+                    <!-- Фильтры по статусу -->
                     <filter string="На одобрении" name="pending_approval" 
                             domain="[('state', '=', 'pending_approval')]"/>
-                    <filter string="Подтвержденные" name="confirmed" 
+                    <filter string="Одобренные" name="confirmed" 
                             domain="[('state', '=', 'confirmed')]"/>
+                    <filter string="Отклоненные" name="cancelled" 
+                            domain="[('state', '=', 'cancelled')]"/>
                     <filter string="Завершенные" name="completed" 
                             domain="[('state', '=', 'completed')]"/>
-                    <filter string="Отмененные" name="cancelled" 
-                            domain="[('state', '=', 'cancelled')]"/>
-                    <filter string="Сегодня" name="today" 
-                            domain="[('start_datetime', '>=', datetime.datetime.now().replace(hour=0, minute=0, second=0)), ('start_datetime', '&lt;', (datetime.datetime.now() + datetime.timedelta(days=1)).replace(hour=0, minute=0, second=0))]"/>
-                    <filter string="Эта неделя" name="this_week" 
-                            domain="[('start_datetime', '>=', (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday())).replace(hour=0, minute=0, second=0)), ('start_datetime', '&lt;', (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday()) + datetime.timedelta(days=7)).replace(hour=0, minute=0, second=0))]"/>
+                    
+                    <!-- Фильтры по типу тренировки -->
+                    <separator/>
+                    <filter string="Индивидуальная" name="type_individual" 
+                            domain="[('training_type_id.code', '=', 'individual')]"/>
+                    <filter string="Сплит" name="type_split" 
+                            domain="[('training_type_id.code', '=', 'split')]"/>
+                    <filter string="Групповая" name="type_group" 
+                            domain="[('training_type_id.code', '=', 'group')]"/>
+                    
+                    <!-- Фильтр по повторяющимся -->
+                    <separator/>
+                    <filter string="Повторяющиеся" name="recurring" 
+                            domain="[('is_recurring', '=', True)]"/>
+                    
+                    <!-- Фильтры по периоду -->
+                    <separator/>
+                    <filter string="Ближайшие" name="upcoming" 
+                            domain="[('start_datetime', '>=', (context_today()))]"/>
                     
                     <separator/>
                     <filter string="Мои тренировки" name="my_trainings" 
                             domain="[('trainer_id.user_id', '=', uid)]"
                             groups="final.group_final_trainer"/>
                     
+                    <!-- Группировка -->
                     <group expand="0" string="Группировка">
                         <filter string="По тренеру" name="group_trainer" 
                                 context="{'group_by': 'trainer_id'}"/>
@@ -55,7 +73,7 @@
             <field name="name">final.training.booking.list</field>
             <field name="model">final.training.booking</field>
             <field name="arch" type="xml">
-                <list string="Тренировки" create="1" delete="1">
+                <list string="Тренировки" create="0" delete="1">
                     <field name="name" string="Описание"/>
                     <field name="start_datetime" string="Начало"/>
                     <field name="end_datetime" string="Окончание"/>
@@ -182,6 +200,47 @@
                                     <field name="clients_balance_info" nolabel="1" widget="html"/>
                                 </group>
                             </page>
+                            <page string="Информация" 
+                                  name="recurring_info"
+                                  invisible="not is_recurring">
+                                <group>
+                                    <group string="Повторяющаяся тренировка">
+                                        <field name="recurring_id" 
+                                               options="{'no_open': True, 'no_create': True}"
+                                               readonly="1"/>
+                                    </group>
+                                    <group string="Действия">
+                                        <button name="action_generate_recurring_bookings" 
+                                                string="Сгенерировать тренировки" 
+                                                type="object"
+                                                class="oe_highlight"
+                                                invisible="state != 'confirmed' or not is_recurring"
+                                                groups="final.group_final_manager,final.group_final_director,final.group_final_trainer"/>
+                                    </group>
+                                </group>
+                                <group string="Сгенерированные тренировки" invisible="not recurring_id">
+                                    <field name="recurring_id" invisible="1"/>
+                                    <field name="recurring_id" 
+                                           context="{'form_view_ref': 'final.view_final_training_recurring_form'}">
+                                        <form>
+                                            <field name="booking_ids" nolabel="1">
+                                                <list string="Тренировки" create="0" delete="0">
+                                                    <field name="name" string="Описание"/>
+                                                    <field name="start_datetime" string="Начало"/>
+                                                    <field name="end_datetime" string="Окончание"/>
+                                                    <field name="state" string="Статус" widget="badge"
+                                                           decoration-success="state == 'confirmed'"
+                                                           decoration-warning="state == 'pending_approval'"
+                                                           decoration-danger="state == 'cancelled'"
+                                                           decoration-info="state == 'completed'"
+                                                           decoration-muted="state == 'draft'"/>
+                                                    <field name="client_ids" string="Клиенты" widget="many2many_tags"/>
+                                                </list>
+                                            </field>
+                                        </form>
+                                    </field>
+                                </group>
+                            </page>
                             <page string="Финансовая информация" 
                                   name="financial_info"
                                   groups="final.group_final_manager,final.group_final_director">
@@ -249,15 +308,6 @@
                 </p>
             </field>
         </record>
-        
-        <!-- Server action для запросов на одобрение -->
-        <record id="action_final_training_booking_pending_approvals" model="ir.actions.server">
-            <field name="name">Запросы на одобрение</field>
-            <field name="model_id" ref="final.model_final_training_booking"/>
-            <field name="state">code</field>
-            <field name="code">action = model.action_open_pending_approvals()</field>
-        </record>
-
     </data>
 </odoo>
 

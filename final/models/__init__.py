@@ -8,4 +8,5 @@ from . import final_center_training_price
 from . import final_training_booking
 from . import final_balance_transaction
 from . import res_partner
+from . import final_training_recurring
 

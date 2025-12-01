@@ -40,6 +40,7 @@ class TrainingBookingWizard(models.TransientModel):
         "hr.employee",
         string="Тренер",
         required=True,
+        domain="[('id', 'in', available_trainer_ids)]",
     )
     date = fields.Date(
         string="Дата",
@@ -325,8 +326,8 @@ class TrainingBookingWizard(models.TransientModel):
                     }
                 }
             
-            # Для менеджера и директора - вычисляем список тренеров и устанавливаем домен
-            # Обновляем computed поле available_trainer_ids
+            # Для менеджера и директора - вычисляем список тренеров
+            # Обновляем computed поле available_trainer_ids (домен обновится автоматически)
             self._compute_available_trainer_ids()
             
             # Используем sudo() для получения ID тренеров, чтобы обойти правила доступа
@@ -340,7 +341,6 @@ class TrainingBookingWizard(models.TransientModel):
                 return {
                     "domain": {
                         "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
-                        "trainer_id": [("id", "=", False)],  # Пустой домен
                     },
                     "warning": {
                         "title": _("Нет тренеров"),
@@ -355,7 +355,6 @@ class TrainingBookingWizard(models.TransientModel):
             return {
                 "domain": {
                     "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
-                    "trainer_id": [("id", "in", trainer_ids)] if trainer_ids else [("id", "=", False)],
                 }
             }
         else:
@@ -805,7 +804,42 @@ class TrainingBookingWizard(models.TransientModel):
         if state == "pending_approval":
             booking._notify_manager_new_request()
         
-        # TODO: Повторяющиеся тренировки будут реализованы позже
+        # Если это повторяющаяся тренировка, создаем шаблон и связываем с booking
+        if self.is_recurring and self.recurring_end_date and self.recurring_days_of_week:
+            # Создаем шаблон повторяющейся тренировки
+            recurring_vals = {
+                "sport_center_id": self.sport_center_id.id,
+                "tennis_court_id": self.tennis_court_id.id,
+                "trainer_id": trainer_id,
+                "training_type_id": self.training_type_id.id,
+                "client_ids": [(6, 0, self.client_ids.ids)],
+                "start_date": self.date,
+                "end_date": self.recurring_end_date,
+                "days_of_week": self.recurring_days_of_week,
+                "time_start": self.start_time,
+                "duration": self.duration,
+                "frequency": "weekly",  # По умолчанию еженедельно
+                "active": True,
+                "approved": False,  # По умолчанию не одобрено
+                "created_by": user.id,
+            }
+            
+            # Если тренер создает шаблон, используем sudo() для обхода проверки доступа к hr.employee
+            # Это необходимо, так как тренер не имеет доступа к записям других тренеров
+            if is_trainer:
+                recurring = self.env["final.training.recurring"].sudo().create(recurring_vals)
+            else:
+                recurring = self.env["final.training.recurring"].create(recurring_vals)
+            
+            # Связываем booking с шаблоном и помечаем как повторяющуюся
+            booking.write({
+                "recurring_id": recurring.id,
+                "is_recurring": True,
+            })
+            
+            # Если создал тренер, отправляем уведомление менеджеру
+            if is_trainer:
+                recurring._notify_manager_new_template()
         
         # Если тренер создал запись, возвращаем action для списка записей
         # Это необходимо, так как после создания с sudo() при попытке открыть форму

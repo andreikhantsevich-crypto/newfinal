@@ -36,3 +36,6 @@ access_final_balance_deposit_wizard_manager,access.final.balance.deposit.wizard.
 access_final_balance_deposit_wizard_director,access.final.balance.deposit.wizard.director,model_final_balance_deposit_wizard,final.group_final_director,1,1,1,1
 access_res_partner_manager,access.res.partner.manager,base.model_res_partner,final.group_final_manager,1,1,1,0
 access_res_partner_director,access.res.partner.director,base.model_res_partner,final.group_final_director,1,1,1,1
+access_final_training_recurring_director,access.final.training.recurring.director,model_final_training_recurring,final.group_final_director,1,1,1,1
+access_final_training_recurring_manager,access.final.training.recurring.manager,model_final_training_recurring,final.group_final_manager,1,1,1,1
+access_final_training_recurring_trainer,access.final.training.recurring.trainer,model_final_training_recurring,final.group_final_trainer,1,1,1,1

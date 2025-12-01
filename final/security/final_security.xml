@@ -243,6 +243,28 @@
             <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
             <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
         </record>
+
+        <!-- Record rules: Повторяющиеся тренировки -->
+        <record id="final_rule_training_recurring_director" model="ir.rule">
+            <field name="name">final.training.recurring director access</field>
+            <field name="model_id" ref="final.model_final_training_recurring"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_training_recurring_manager" model="ir.rule">
+            <field name="name">final.training.recurring manager access</field>
+            <field name="model_id" ref="final.model_final_training_recurring"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('sport_center_id', 'in', user.employee_id.sport_center_id.ids)]</field>
+        </record>
+
+        <record id="final_rule_training_recurring_trainer" model="ir.rule">
+            <field name="name">final.training.recurring trainer access</field>
+            <field name="model_id" ref="final.model_final_training_recurring"/>
+            <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
+            <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
+        </record>
     </data>
 </odoo>
 

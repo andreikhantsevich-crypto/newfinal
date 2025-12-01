@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 
 class FinalTrainingBooking(models.Model):
     _name = "final.training.booking"
     _description = "Запись на тренировку"
-    _order = "start_datetime desc"
+    _order = "create_date desc, id desc"
     _rec_name = "name"
 
     name = fields.Char(
@@ -605,6 +605,14 @@ class FinalTrainingBooking(models.Model):
             "rejected_date": False,
         })
         
+        # Если это повторяющаяся тренировка, одобряем также шаблон
+        if self.is_recurring and self.recurring_id:
+            self.recurring_id.write({
+                "approved": True,
+                "approved_by": self.env.user.id,
+                "approved_date": fields.Datetime.now(),
+            })
+        
         # Отправка уведомления тренеру
         self._notify_trainer_approval()
         
@@ -875,6 +883,19 @@ class FinalTrainingBooking(models.Model):
         
         return super().read(fields=fields, load=load)
     
+    def action_generate_recurring_bookings(self):
+        """Генерация тренировок для повторяющейся тренировки"""
+        self.ensure_one()
+        
+        if not self.is_recurring or not self.recurring_id:
+            raise ValidationError(_("Эта тренировка не является повторяющейся."))
+        
+        if self.state != "confirmed":
+            raise ValidationError(_("Можно генерировать тренировки только для подтвержденных повторяющихся тренировок."))
+        
+        # Используем метод генерации из шаблона
+        return self.recurring_id.generate_bookings()
+    
     @api.model
     def action_open_pending_approvals(self):
         """Открывает список запросов на одобрение для менеджера"""
@@ -921,4 +942,14 @@ class FinalTrainingBooking(models.Model):
             },
             "help": _("Список тренировок, ожидающих одобрения менеджера. Кликните на запись, чтобы открыть форму с кнопками 'Одобрить' и 'Отклонить'."),
         }
+    
+    @api.model
+    def _get_upcoming_week_domain(self):
+        """Возвращает домен для фильтра 'Ближайшие' (неделя вперед)"""
+        now = fields.Datetime.now()
+        week_later = now + timedelta(days=7)
+        return [
+            ('start_datetime', '>=', now),
+            ('start_datetime', '<', week_later),
+        ]
 

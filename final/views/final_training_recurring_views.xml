@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Поиск повторяющихся тренировок -->
+        <record id="view_final_training_recurring_search" model="ir.ui.view">
+            <field name="name">final.training.recurring.search</field>
+            <field name="model">final.training.recurring</field>
+            <field name="arch" type="xml">
+                <search string="Повторяющиеся тренировки">
+                    <field name="name" string="Название"/>
+                    <field name="trainer_id" string="Тренер"/>
+                    <field name="sport_center_id" string="Спортивный центр"/>
+                    <field name="tennis_court_id" string="Корт"/>
+                    <field name="training_type_id" string="Тип тренировки"/>
+                    <field name="client_ids" string="Клиент"/>
+                    
+                    <filter string="Активные" name="active" 
+                            domain="[('active', '=', True)]"/>
+                    <filter string="Неактивные" name="inactive" 
+                            domain="[('active', '=', False)]"/>
+                    <filter string="Требуют одобрения" name="pending_approval" 
+                            domain="[('approved', '=', False), ('active', '=', True)]"
+                            groups="final.group_final_manager,final.group_final_director"/>
+                    <filter string="Одобренные" name="approved" 
+                            domain="[('approved', '=', True)]"
+                            groups="final.group_final_manager,final.group_final_director"/>
+                    
+                    <group expand="0" string="Группировка">
+                        <filter string="По тренеру" name="group_trainer" 
+                                context="{'group_by': 'trainer_id'}"/>
+                        <filter string="По СЦ" name="group_center" 
+                                context="{'group_by': 'sport_center_id'}"/>
+                        <filter string="По корту" name="group_court" 
+                                context="{'group_by': 'tennis_court_id'}"/>
+                        <filter string="По типу" name="group_type" 
+                                context="{'group_by': 'training_type_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Список повторяющихся тренировок -->
+        <record id="view_final_training_recurring_list" model="ir.ui.view">
+            <field name="name">final.training.recurring.list</field>
+            <field name="model">final.training.recurring</field>
+            <field name="arch" type="xml">
+                <list string="Повторяющиеся тренировки" decoration-muted="not active" decoration-warning="not approved and active">
+                    <field name="name" string="Название"/>
+                    <field name="sport_center_id" string="СЦ"/>
+                    <field name="tennis_court_id" string="Корт"/>
+                    <field name="trainer_id" string="Тренер"/>
+                    <field name="training_type_id" string="Тип"/>
+                    <field name="client_ids" string="Клиенты" widget="many2many_tags"/>
+                    <field name="start_date" string="Начало"/>
+                    <field name="end_date" string="Окончание"/>
+                    <field name="days_of_week" string="Дни недели"/>
+                    <field name="time_start" widget="float_time" string="Время"/>
+                    <field name="duration" string="Продолжительность"/>
+                    <field name="frequency" string="Частота"/>
+                    <field name="approved" string="Одобрено" widget="boolean_toggle" 
+                           groups="final.group_final_manager,final.group_final_director"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Форма повторяющейся тренировки -->
+        <record id="view_final_training_recurring_form" model="ir.ui.view">
+            <field name="name">final.training.recurring.form</field>
+            <field name="model">final.training.recurring</field>
+            <field name="arch" type="xml">
+                <form string="Повторяющаяся тренировка">
+                    <header>
+                        <button name="action_approve" 
+                                string="Одобрить шаблон" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="approved or not active"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_generate_bookings" 
+                                string="Сгенерировать записи" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="not active"
+                                groups="final.group_final_manager,final.group_final_director,final.group_final_trainer"/>
+                        <field name="active" widget="boolean_toggle"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" readonly="1" placeholder="Название повторяющейся тренировки"/>
+                            </h1>
+                        </div>
+                        
+                        <group>
+                            <group string="Основная информация">
+                                <field name="sport_center_id" 
+                                       options="{'no_open': True, 'no_create': True}"/>
+                                <field name="tennis_court_id" 
+                                       options="{'no_open': True, 'no_create': True}"
+                                       domain="[('sport_center_id', '=', sport_center_id)]"/>
+                                <field name="trainer_id" 
+                                       options="{'no_open': True, 'no_create': True}"/>
+                                <field name="training_type_id" 
+                                       options="{'no_open': True, 'no_create': True}"/>
+                                <field name="client_ids" 
+                                       widget="many2many_tags"
+                                       options="{'no_create_edit': True}"/>
+                            </group>
+                            <group string="Параметры повтора">
+                                <field name="start_date"/>
+                                <field name="end_date"/>
+                                <field name="days_of_week" 
+                                       placeholder="0,2,4 (Пн, Ср, Пт)"
+                                       help="Дни недели через запятую: 0=Понедельник, 1=Вторник, ..., 6=Воскресенье"/>
+                                <field name="time_start" widget="float_time" 
+                                       help="Время начала в формате часов (например, 14.5 = 14:30)"/>
+                                <field name="duration" 
+                                       help="Продолжительность в часах"/>
+                                <field name="frequency"/>
+                            </group>
+                        </group>
+                        
+                        <notebook>
+                            <page string="Информация о создании" name="creation_info">
+                                <group>
+                                    <group>
+                                        <field name="created_by" readonly="1"/>
+                                        <field name="approved" readonly="1" 
+                                               invisible="not approved"/>
+                                    </group>
+                                    <group>
+                                        <field name="approved_by" readonly="1" 
+                                               invisible="not approved_by"/>
+                                        <field name="approved_date" readonly="1" 
+                                               invisible="not approved_date"/>
+                                    </group>
+                                </group>
+                            </page>
+                            <page string="Сгенерированные тренировки" name="bookings">
+                                <field name="booking_ids" nolabel="1">
+                                    <list string="Тренировки" create="0" delete="0">
+                                        <field name="name" string="Описание"/>
+                                        <field name="start_datetime" string="Начало"/>
+                                        <field name="end_datetime" string="Окончание"/>
+                                        <field name="state" string="Статус" widget="badge"
+                                               decoration-success="state == 'confirmed'"
+                                               decoration-warning="state == 'pending_approval'"
+                                               decoration-danger="state == 'cancelled'"
+                                               decoration-info="state == 'completed'"
+                                               decoration-muted="state == 'draft'"/>
+                                        <field name="client_ids" string="Клиенты" widget="many2many_tags"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                        
+                        <field name="currency_id" invisible="1"/>
+                        <field name="company_id" invisible="1"/>
+                        <field name="created_by" invisible="1"/>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Действие для открытия списка повторяющихся тренировок -->
+        <record id="action_final_training_recurring" model="ir.actions.act_window">
+            <field name="name">Повторяющиеся тренировки</field>
+            <field name="res_model">final.training.recurring</field>
+            <field name="view_mode">list,form</field>
+            <field name="domain">[]</field>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Создайте шаблон повторяющейся тренировки
+                </p>
+                <p>
+                    Здесь вы можете создать шаблон для повторяющихся тренировок. 
+                    После создания шаблона нажмите "Сгенерировать записи" для создания тренировок.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+
