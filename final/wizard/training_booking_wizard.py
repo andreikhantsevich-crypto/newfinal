@@ -64,7 +64,7 @@ class TrainingBookingWizard(models.TransientModel):
         "partner_id",
         string="Клиенты",
         required=True,
-        domain="[('is_company', '=', False)]",
+        domain="[('is_company', '=', False), ('telegram_user_id', '!=', False)]",
     )
     is_recurring = fields.Boolean(
         string="Повторяющаяся тренировка",

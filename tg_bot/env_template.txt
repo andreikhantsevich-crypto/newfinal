@@ -1,0 +1,5 @@
+TG_BOT_TOKEN=8512158110:AAHIhIngUngbM2OkCsZt0tdGVK7Pv8QVmrE
+ODOO_API_TOKEN=super_secret_token_12345
+ODOO_BASE_URL=http://localhost:8017
+
+

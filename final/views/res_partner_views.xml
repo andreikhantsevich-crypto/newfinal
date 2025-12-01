@@ -1,7 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Расширение формы клиента (res.partner) -->
+        <!-- Упрощённая форма клиента для модуля Final -->
+        <record id="view_final_partner_simple_form" model="ir.ui.view">
+            <field name="name">res.partner.form.final.simple</field>
+            <field name="model">res.partner</field>
+            <field name="priority">20</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <!-- Заменяем основную часть формы более простой для наших клиентов -->
+                <xpath expr="//sheet/group" position="replace">
+                    <group string="Основная информация">
+                        <group>
+                            <field name="name" string="ФИО" required="1"/>
+                            <field name="phone" string="Телефон"/>
+                            <field name="email" string="Email"/>
+                        </group>
+                        <group string="Telegram">
+                            <field name="telegram_user_id" string="Telegram User ID" required="1"/>
+                        </group>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Расширение формы клиента (res.partner) баланс и Telegram -->
         <record id="view_partner_form_final_balance" model="ir.ui.view">
             <field name="name">res.partner.form.final.balance</field>
             <field name="model">res.partner</field>
@@ -42,6 +65,18 @@
                     <field name="balance" widget="monetary" groups="final.group_final_manager,final.group_final_director"/>
                     <field name="balance_currency_id" groups="final.group_final_manager,final.group_final_director" 
                            options="{'no_create': True, 'no_create_edit': True}"/>
+                    <!-- Поля для привязки Telegram-аккаунта клиента -->
+                    <field name="telegram_user_id" groups="final.group_final_manager,final.group_final_director"/>
+                    <field name="telegram_username" groups="final.group_final_manager,final.group_final_director"/>
+                    <label for="telegram_user_id" string="Инструкция по привязке Telegram" class="oe_inline"
+                           groups="final.group_final_manager,final.group_final_director"/>
+                    <div class="text-muted"
+                         groups="final.group_final_manager,final.group_final_director">
+                        Для привязки аккаунта попросите клиента:
+                        1) Написать боту @userinfobot и прислать вам полученный ID,
+                        или 2) Написать /start в нашем Telegram-боте и прислать отображаемый ID.
+                        Затем введите этот ID в поле "Telegram User ID".
+                    </div>
                 </xpath>
             </field>
         </record>

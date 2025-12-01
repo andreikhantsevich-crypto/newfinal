@@ -48,7 +48,7 @@
                                            widget="many2many_tags"
                                            options="{'no_create_edit': True}"
                                            required="1"
-                                           domain="[('is_company', '=', False)]"/>
+                                           domain="[('is_company', '=', False), ('telegram_user_id', '!=', False)]"/>
                                     <div class="alert alert-info" role="alert">
                                         <strong>Требования по клиентам:</strong>
                                         <ul>

@@ -32,6 +32,14 @@ class ResPartner(models.Model):
         string="История баланса",
         help="История транзакций баланса клиента",
     )
+    telegram_user_id = fields.Integer(
+        string="Telegram User ID",
+        help="Уникальный идентификатор пользователя в Telegram, вводится менеджером вручную",
+    )
+    telegram_username = fields.Char(
+        string="Telegram Username",
+        help="Имя пользователя в Telegram (@username), опционально, для удобства",
+    )
 
     @api.constrains("balance")
     def _check_balance_not_negative(self):
@@ -43,6 +51,39 @@ class ResPartner(models.Model):
         #             _("Баланс клиента '%s' не может быть отрицательным.") % record.name
         #         )
         pass
+
+    @api.constrains("telegram_user_id")
+    def _check_telegram_user_id(self):
+        """Проверка корректности и уникальности Telegram User ID"""
+        for record in self:
+            if record.telegram_user_id:
+                # ID должен быть положительным числом
+                if record.telegram_user_id <= 0:
+                    raise ValidationError(
+                        _("Telegram User ID для клиента '%s' должен быть положительным числом.")
+                        % (record.name,)
+                    )
+
+                # Уникальность в системе
+                duplicate = (
+                    self.search(
+                        [
+                            ("id", "!=", record.id),
+                            ("telegram_user_id", "=", record.telegram_user_id),
+                        ],
+                        limit=1,
+                    )
+                    if record.id
+                    else False
+                )
+                if duplicate:
+                    raise ValidationError(
+                        _(
+                            "Telegram User ID %d уже привязан к клиенту '%s'. "
+                            "Один Telegram-аккаунт не может быть привязан к нескольким клиентам."
+                        )
+                        % (record.telegram_user_id, duplicate.name)
+                    )
 
     def get_balance(self):
         """Получить текущий баланс клиента"""

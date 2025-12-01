@@ -59,7 +59,7 @@ class FinalTrainingBooking(models.Model):
         "partner_id",
         string="Клиенты",
         required=True,
-        domain="[('is_company', '=', False)]",
+        domain="[('is_company', '=', False), ('telegram_user_id', '!=', False)]",
     )
     start_datetime = fields.Datetime(
         string="Дата и время начала",
