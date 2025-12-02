@@ -144,10 +144,10 @@
                                 </field>
                             </page>
                             <page string="Клиенты">
-                                <field name="client_ids" 
+                                <field name="client_ids"
                                        mode="list"
-                                       readonly="1">
-                                    <list string="Клиенты">
+                                       context="{'default_sport_center_ids': [(4, id)]}">
+                                    <list string="Клиенты" create="1" edit="1" delete="0">
                                         <field name="name"/>
                                         <field name="email"/>
                                         <field name="phone"/>

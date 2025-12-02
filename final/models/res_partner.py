@@ -32,6 +32,14 @@ class ResPartner(models.Model):
         string="История баланса",
         help="История транзакций баланса клиента",
     )
+    sport_center_ids = fields.Many2many(
+        "final.sport.center",
+        "final_center_res_partner_rel",
+        "partner_id",
+        "center_id",
+        string="Спортивные центры",
+        help="Спортивные центры, к которым относится клиент.",
+    )
     telegram_user_id = fields.Integer(
         string="Telegram User ID",
         help="Уникальный идентификатор пользователя в Telegram, вводится менеджером вручную",
@@ -122,4 +130,27 @@ class ResPartner(models.Model):
                 "default_partner_id": self.id,
             },
         }
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Автоматически привязываем клиентов к центру менеджера, который их создаёт.
+
+        - Если клиент создаётся пользователем с ролью Менеджер
+          и у него есть manager_center_ids,
+          привязываем клиента к этим центрам (если явно не указано иное).
+        """
+        records = super().create(vals_list)
+        user = self.env.user
+
+        if user.has_group("final.group_final_manager"):
+            centers = user.employee_id.manager_center_ids
+            if centers:
+                for partner in records:
+                    # Если при создании явно не указали центры, добавляем центры менеджера
+                    if not partner.sport_center_ids:
+                        partner.sudo().write(
+                            {"sport_center_ids": [(6, 0, centers.ids)]}
+                        )
+
+        return records
 

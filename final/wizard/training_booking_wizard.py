@@ -64,7 +64,7 @@ class TrainingBookingWizard(models.TransientModel):
         "partner_id",
         string="Клиенты",
         required=True,
-        domain="[('is_company', '=', False), ('telegram_user_id', '!=', False)]",
+        domain="[('is_company', '=', False), ('telegram_user_id', '!=', False), ('sport_center_ids', 'in', [sport_center_id])]",
     )
     is_recurring = fields.Boolean(
         string="Повторяющаяся тренировка",
@@ -859,6 +859,11 @@ class TrainingBookingWizard(models.TransientModel):
         # Отправляем уведомление менеджеру, если запись создана тренером
         if state == "pending_approval":
             booking._notify_manager_new_request()
+        # Если запись сразу подтверждена (создал менеджер) — уведомляем клиентов
+        elif state == "confirmed":
+            booking._notify_clients_booking_created()
+            # И сразу проверяем, не нужно ли отправить напоминание (если до начала уже < N часов)
+            booking._maybe_send_reminder_immediately()
         
         # Если это повторяющаяся тренировка, создаем шаблон и связываем с booking
         if self.is_recurring and self.recurring_end_date and self.recurring_days_of_week:

@@ -17,6 +17,7 @@
         'security/final_security.xml',
         'security/ir.model.access.csv',
         'data/training_type_data.xml',
+        'data/final_cron.xml',
         'views/final_training_type_views.xml',
         'views/final_order_views.xml',
         'views/hr_employee_views.xml',

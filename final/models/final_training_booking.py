@@ -2,6 +2,7 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 from datetime import datetime, timedelta
+import requests
 
 
 class FinalTrainingBooking(models.Model):
@@ -640,6 +641,11 @@ class FinalTrainingBooking(models.Model):
         
         # Отправка уведомления тренеру
         self._notify_trainer_approval()
+
+        # Отправка уведомлений клиентам о подтвержденной тренировке
+        self._notify_clients_booking_created()
+        # И сразу проверяем, не нужно ли отправить напоминание (если до начала уже < N часов)
+        self._maybe_send_reminder_immediately()
         
         return True
     
@@ -729,6 +735,172 @@ class FinalTrainingBooking(models.Model):
             ),
             "partner_ids": [(4, self.trainer_id.user_id.partner_id.id)],
         })
+
+    # === Telegram-уведомления клиентам ===
+
+    def _get_telegram_bot_token(self):
+        """Получить токен Telegram-бота из настроек системы."""
+        param_env = self.env["ir.config_parameter"].sudo()
+        return param_env.get_param("final.telegram_bot_token") or ""
+
+    def _send_telegram_message(self, partner, text):
+        """Отправка сообщения клиенту в Telegram напрямую через Bot API.
+
+        Использует:
+        - final.telegram_bot_token — токен бота
+        - partner.telegram_user_id — chat_id
+        """
+        if not partner or not partner.telegram_user_id:
+            return
+
+        bot_token = self._get_telegram_bot_token()
+        if not bot_token:
+            # Токен не настроен — тихо выходим, чтобы не ломать поток бизнес-логики
+            return
+
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            "chat_id": partner.telegram_user_id,
+            "text": text,
+            "parse_mode": "HTML",
+        }
+
+        try:
+            # Используем небольшой таймаут, чтобы не блокировать воркер надолго
+            response = requests.post(url, json=payload, timeout=5)
+            response.raise_for_status()
+        except Exception:
+            # Не поднимаем исключение — уведомления не должны ломать основной поток
+            return
+
+    def _build_booking_message(self, is_reminder=False):
+        """Собирает текст сообщения о тренировке для клиента."""
+        self.ensure_one()
+
+        # Локализуем время
+        start_local = fields.Datetime.context_timestamp(self, self.start_datetime) if self.start_datetime else None
+        end_local = fields.Datetime.context_timestamp(self, self.end_datetime) if self.end_datetime else None
+
+        date_str = start_local.strftime("%d.%m.%Y") if start_local else ""
+        time_start = start_local.strftime("%H:%M") if start_local else ""
+        time_end = end_local.strftime("%H:%M") if end_local else ""
+
+        center = self.sport_center_id.name or ""
+        court = self.tennis_court_id.name or ""
+        trainer = self.trainer_id.name or ""
+        training_type = self.training_type_id.name or ""
+
+        if is_reminder:
+            header = "Напоминание о тренировке через 1 час:"
+        else:
+            header = "Вы записаны на тренировку:"
+
+        lines = [
+            header,
+            "",
+            f"📅 <b>{date_str}</b> {time_start}–{time_end}",
+            f"🏟 {center} — {court}" if center or court else "",
+            f"👨‍🏫 Тренер: {trainer}" if trainer else "",
+            f"Тип: {training_type}" if training_type else "",
+        ]
+
+        # Убираем пустые строки
+        lines = [l for l in lines if l]
+        return "\n".join(lines)
+
+    def _notify_clients_booking_created(self):
+        """Отправка уведомлений клиентам при подтверждении тренировки.
+
+        Отправляется:
+        - при создании подтвержденной тренировки менеджером
+        - при одобрении тренировки менеджером (после pending_approval)
+        """
+        self.ensure_one()
+
+        # Не уведомляем повторно, если уже отправляли
+        if self.telegram_notification_sent:
+            return
+
+        # Уведомляем только для подтвержденных тренировок
+        if self.state != "confirmed":
+            return
+
+        message_text = self._build_booking_message(is_reminder=False)
+        for partner in self.client_ids:
+            self._send_telegram_message(partner, message_text)
+
+        # Помечаем, что уведомление отправлено
+        self.telegram_notification_sent = True
+
+    def _maybe_send_reminder_immediately(self):
+        """Отправить напоминание сразу, если до тренировки осталось <= N часов.
+
+        Это защищает от ситуации, когда cron ещё не успел отработать,
+        а тренировка уже скоро начнётся.
+        """
+        self.ensure_one()
+
+        # Напоминания отправляем только для подтверждённых тренировок
+        if self.state != "confirmed" or self.reminder_sent:
+            return
+
+        if not self.start_datetime:
+            return
+
+        param_env = self.env["ir.config_parameter"].sudo()
+        try:
+            hours_str = param_env.get_param("final.reminder_hours") or "1"
+            reminder_hours = float(hours_str)
+        except Exception:
+            reminder_hours = 1.0
+
+        now = fields.Datetime.now()
+        # Если тренировка уже началась или закончилась — напоминание не шлём
+        if self.start_datetime <= now:
+            return
+
+        delta_hours = (self.start_datetime - now).total_seconds() / 3600.0
+        if 0 < delta_hours <= reminder_hours:
+            message_text = self._build_booking_message(is_reminder=True)
+            for partner in self.client_ids:
+                self._send_telegram_message(partner, message_text)
+            self.reminder_sent = True
+
+    @api.model
+    def cron_send_training_reminders(self):
+        """Cron-задача: отправка напоминаний клиентам за 1 час до тренировки.
+
+        Логика:
+        - Берём тренировки в статусе confirmed
+        - У которых reminder_sent = False
+        - Время начала в интервале [now, now + N часов]
+          (N берётся из настроек final.reminder_hours, по умолчанию 1)
+        - Для каждого клиента отправляем сообщение и отмечаем reminder_sent = True
+        """
+        param_env = self.env["ir.config_parameter"].sudo()
+        try:
+            hours_str = param_env.get_param("final.reminder_hours") or "1"
+            reminder_hours = float(hours_str)
+        except Exception:
+            reminder_hours = 1.0
+
+        now = fields.Datetime.now()
+        reminder_limit = now + timedelta(hours=reminder_hours)
+
+        # Берём все неподтверждённые напоминания для тренировок,
+        # которые начнутся в ближайшие N часов (и ещё не начались).
+        bookings = self.sudo().search([
+            ("state", "=", "confirmed"),
+            ("reminder_sent", "=", False),
+            ("start_datetime", ">", now),
+            ("start_datetime", "<=", reminder_limit),
+        ])
+
+        for booking in bookings:
+            message_text = booking._build_booking_message(is_reminder=True)
+            for partner in booking.client_ids:
+                booking._send_telegram_message(partner, message_text)
+            booking.reminder_sent = True
     
     def _notify_manager_new_request(self):
         """Отправка уведомления менеджеру о новом запросе"""
