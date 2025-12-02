@@ -271,6 +271,13 @@
                   action="action_final_statistics_report_wizard"
                   sequence="10"
                   groups="final.group_final_director"/>
+
+        <menuitem id="menu_final_profit_report"
+                  name="PDF отчет по прибыли"
+                  parent="menu_final_reports"
+                  action="action_final_profit_report_wizard"
+                  sequence="11"
+                  groups="final.group_final_director"/>
     </data>
 </odoo>
 

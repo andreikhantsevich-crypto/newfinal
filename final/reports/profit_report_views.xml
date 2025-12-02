@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- QWeb Report Template -->
+        <template id="report_profit_by_centers">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <div class="oe_structure"/>
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2 class="text-center">Отчет по прибыли в разрезе спортивных центров</h2>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3 mb-3">
+                                <div class="col-12">
+                                    <p>
+                                        <strong>Период:</strong> 
+                                        <span t-esc="o.date_from.strftime('%d.%m.%Y') if o.date_from else ''"/> - 
+                                        <span t-esc="o.date_to.strftime('%d.%m.%Y') if o.date_to else ''"/>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <t t-set="report_data" t-value="o._get_profit_data()"/>
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Спортивный центр</th>
+                                                <th class="text-right">Количество тренировок</th>
+                                                <th class="text-right">Прибыль</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-foreach="report_data['centers']" t-as="center">
+                                                <tr>
+                                                    <td>
+                                                        <strong t-esc="center.get('name', '')"/>
+                                                    </td>
+                                                    <td class="text-right" t-esc="center.get('bookings_count', 0)"/>
+                                                    <td class="text-right">
+                                                        <span t-esc="o.currency_id.symbol"/>
+                                                        <span t-esc="'{:,.2f}'.format(center.get('profit', 0.0)).replace(',', ' ').replace('.', ',')"/>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr style="background-color: #f0f0f0; font-weight: bold;">
+                                                <td><strong>ИТОГО:</strong></td>
+                                                <td class="text-right" t-esc="report_data.get('total_bookings', 0)"/>
+                                                <td class="text-right">
+                                                    <span t-esc="o.currency_id.symbol"/>
+                                                    <span t-esc="'{:,.2f}'.format(report_data.get('total_profit', 0.0)).replace(',', ' ').replace('.', ',')"/>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Детальная информация по каждому СЦ -->
+                            <t t-foreach="report_data['centers']" t-as="center">
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <h3 t-esc="center.get('name', '')"/>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12">
+                                        <table class="table table-sm table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Дата</th>
+                                                    <th>Тренер</th>
+                                                    <th>Вид тренировки</th>
+                                                    <th class="text-right">Стоимость</th>
+                                                    <th class="text-right">Ставка тренера</th>
+                                                    <th class="text-right">Прибыль</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <t t-foreach="center.get('bookings', [])" t-as="booking">
+                                                    <tr>
+                                                        <td>
+                                                        <span t-esc="booking.get('date').strftime('%d.%m.%Y') if booking.get('date') else ''"/>
+                                                    </td>
+                                                        <td t-esc="booking.get('trainer', '')"/>
+                                                        <td t-esc="booking.get('training_type', '')"/>
+                                                        <td class="text-right">
+                                                            <span t-esc="o.currency_id.symbol"/>
+                                                            <span t-esc="'{:,.2f}'.format(booking.get('price', 0.0)).replace(',', ' ').replace('.', ',')"/>
+                                                        </td>
+                                                        <td class="text-right">
+                                                            <span t-esc="o.currency_id.symbol"/>
+                                                            <span t-esc="'{:,.2f}'.format(booking.get('trainer_rate', 0.0)).replace(',', ' ').replace('.', ',')"/>
+                                                        </td>
+                                                        <td class="text-right">
+                                                            <span t-esc="o.currency_id.symbol"/>
+                                                            <span t-esc="'{:,.2f}'.format(booking.get('profit', 0.0)).replace(',', ' ').replace('.', ',')"/>
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr style="background-color: #f0f0f0; font-weight: bold;">
+                                                    <td colspan="3"><strong>Итого по центру:</strong></td>
+                                                    <td class="text-right">
+                                                        <span t-esc="o.currency_id.symbol"/>
+                                                        <t t-set="center_total_price" t-value="sum([b.get('price', 0.0) for b in center.get('bookings', [])])"/>
+                                                        <span t-esc="'{:,.2f}'.format(center_total_price).replace(',', ' ').replace('.', ',')"/>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        <span t-esc="o.currency_id.symbol"/>
+                                                        <t t-set="center_total_rate" t-value="sum([b.get('trainer_rate', 0.0) for b in center.get('bookings', [])])"/>
+                                                        <span t-esc="'{:,.2f}'.format(center_total_rate).replace(',', ' ').replace('.', ',')"/>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        <span t-esc="o.currency_id.symbol"/>
+                                                        <span t-esc="'{:,.2f}'.format(center.get('profit', 0.0)).replace(',', ' ').replace('.', ',')"/>
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </t>
+                            
+                            <div class="oe_structure"/>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <!-- Report Action -->
+        <record id="action_report_profit_by_centers" model="ir.actions.report">
+            <field name="name">Отчет по прибыли в разрезе СЦ</field>
+            <field name="model">final.profit.report.wizard</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">final.report_profit_by_centers</field>
+            <field name="report_file">final.report_profit_by_centers</field>
+            <field name="print_report_name">'Отчет по прибыли - %s' % (object.date_from.strftime('%d.%m.%Y') if object.date_from else '')</field>
+        </record>
+    </data>
+</odoo>
