@@ -932,3 +932,45 @@ class TrainingBookingWizard(models.TransientModel):
                 "target": "current",
             }
 
+    def action_view_calendar(self):
+        """Открывает календарное представление тренировок с фильтром по выбранному корту"""
+        self.ensure_one()
+        
+        # Подготовка контекста для фильтрации
+        domain = []
+        
+        # Фильтр по корту, если выбран
+        if self.tennis_court_id:
+            domain.append(('tennis_court_id', '=', self.tennis_court_id.id))
+        
+        # Фильтр по СЦ, если выбран
+        if self.sport_center_id:
+            domain.append(('sport_center_id', '=', self.sport_center_id.id))
+        
+        # Фильтр по дате, если выбрана (показываем только будущие тренировки)
+        if self.date:
+            date_start = fields.Datetime.to_datetime(self.date).replace(hour=0, minute=0, second=0)
+            domain.append(('start_datetime', '>=', date_start))
+            # Показываем неделю начиная с выбранной даты
+            date_end = date_start + timedelta(days=7)
+            domain.append(('start_datetime', '<', date_end))
+        
+        # Фильтр только подтвержденные и на одобрении тренировки
+        domain.append(('state', 'in', ['pending_approval', 'confirmed']))
+        
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Календарь тренировок"),
+            "res_model": "final.training.booking",
+            "view_mode": "calendar",
+            "view_id": self.env.ref("final.view_final_training_booking_calendar").id,
+            "domain": domain,
+            "context": {
+                'search_default_upcoming': 1,
+                'default_tennis_court_id': self.tennis_court_id.id if self.tennis_court_id else False,
+                'default_sport_center_id': self.sport_center_id.id if self.sport_center_id else False,
+                'initial_date': self.date.strftime('%Y-%m-%d') if self.date else False,
+            },
+            "target": "new",
+        }
+

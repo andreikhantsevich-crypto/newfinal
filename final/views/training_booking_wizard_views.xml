@@ -61,6 +61,13 @@
                             </page>
                             <page string="Доступные слоты" name="page_slots">
                                 <group>
+                                    <button name="action_view_calendar" 
+                                            string="Календарь" 
+                                            type="object"
+                                            icon="fa-calendar"
+                                            class="btn-primary"/>
+                                </group>
+                                <group>
                                     <field name="available_slots_info" widget="html" readonly="1"/>
                                     <div class="alert alert-warning" role="alert">
                                         <strong>Внимание:</strong> Выбранное время не должно пересекаться 
