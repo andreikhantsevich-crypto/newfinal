@@ -146,11 +146,14 @@
                             <page string="Клиенты">
                                 <field name="client_ids"
                                        mode="list"
-                                       context="{'default_sport_center_ids': [(4, id)]}">
+                                       domain="[('sport_center_ids', 'in', [id]), ('is_company', '=', False), ('telegram_user_id', '!=', False)]"
+                                       context="{'default_sport_center_ids': [(4, id)], 'default_is_company': False, 'search_default_my_center_clients': 1}">
                                     <list string="Клиенты" create="1" edit="1" delete="0">
                                         <field name="name"/>
-                                        <field name="email"/>
                                         <field name="phone"/>
+                                        <field name="email"/>
+                                        <field name="telegram_user_id"/>
+                                        <field name="balance" widget="monetary"/>
                                     </list>
                                 </field>
                             </page>

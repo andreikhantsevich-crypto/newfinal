@@ -205,6 +205,15 @@
             <field name="domain_force">[('user_id', '=', user.id)]</field>
         </record>
 
+        <!-- Record rules: Пользователи (res.users) -->
+        <!-- Менеджер должен видеть свою собственную запись пользователя -->
+        <record id="final_rule_res_users_manager" model="ir.rule">
+            <field name="name">res.users manager access</field>
+            <field name="model_id" ref="base.model_res_users"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <field name="domain_force">[('id', '=', user.id)]</field>
+        </record>
+
         <!-- Record rules: Клиенты (res.partner) -->
         <!-- Директор видит всех клиентов -->
         <record id="final_rule_res_partner_director" model="ir.rule">
@@ -214,12 +223,24 @@
             <field name="domain_force">[(1, '=', 1)]</field>
         </record>
         
-        <!-- Менеджер видит всех клиентов (можно ограничить только клиентами своего СЦ, но это сложнее) -->
+        <!-- Менеджер видит только клиентов своего СЦ -->
+        <!-- Также менеджер должен видеть свою собственную запись partner (для профиля) -->
+        <!-- Разрешаем создание новых клиентов и чтение клиентов своего СЦ -->
         <record id="final_rule_res_partner_manager" model="ir.rule">
             <field name="name">res.partner manager access</field>
             <field name="model_id" ref="base.model_res_partner"/>
             <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
-            <field name="domain_force">[('is_company', '=', False)]</field>
+            <field name="domain_force">[
+                '|',
+                ('id', '=', user.partner_id.id),
+                '|',
+                '&amp;',
+                ('is_company', '=', False),
+                ('telegram_user_id', '=', False),
+                '&amp;',
+                ('is_company', '=', False),
+                ('sport_center_ids', 'in', user.employee_id.manager_center_ids.ids)
+            ]</field>
         </record>
 
         <!-- Record rules: Записи на тренировки -->
@@ -264,6 +285,25 @@
             <field name="model_id" ref="final.model_final_training_recurring"/>
             <field name="groups" eval="[(4, ref('final.group_final_trainer'))]"/>
             <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
+        </record>
+
+        <!-- Record rules: Транзакции баланса -->
+        <record id="final_rule_balance_transaction_director" model="ir.rule">
+            <field name="name">final.balance.transaction director access</field>
+            <field name="model_id" ref="final.model_final_balance_transaction"/>
+            <field name="groups" eval="[(4, ref('final.group_final_director'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+
+        <record id="final_rule_balance_transaction_manager" model="ir.rule">
+            <field name="name">final.balance.transaction manager access</field>
+            <field name="model_id" ref="final.model_final_balance_transaction"/>
+            <field name="groups" eval="[(4, ref('final.group_final_manager'))]"/>
+            <!-- Менеджер видит транзакции только клиентов своего СЦ -->
+            <!-- Транзакции автоматически фильтруются через правило res.partner для клиентов -->
+            <!-- Так как partner_id - это Many2one, и правило для res.partner уже ограничивает клиентов, -->
+            <!-- транзакции будут автоматически видны только для клиентов, которых видит менеджер -->
+            <field name="domain_force">[(1, '=', 1)]</field>
         </record>
     </data>
 </odoo>

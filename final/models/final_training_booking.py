@@ -3,6 +3,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 from datetime import datetime, timedelta
 import requests
+import requests
 
 
 class FinalTrainingBooking(models.Model):
@@ -680,8 +681,7 @@ class FinalTrainingBooking(models.Model):
 
         # Отправка уведомлений клиентам о подтвержденной тренировке
         self._notify_clients_booking_created()
-        # И сразу проверяем, не нужно ли отправить напоминание (если до начала уже < N часов)
-        self._maybe_send_reminder_immediately()
+        # Напоминание за час до начала будет отправлено автоматически через cron-задачу
         
         return True
     
@@ -805,21 +805,42 @@ class FinalTrainingBooking(models.Model):
             # Используем небольшой таймаут, чтобы не блокировать воркер надолго
             response = requests.post(url, json=payload, timeout=5)
             response.raise_for_status()
-        except Exception:
-            # Не поднимаем исключение — уведомления не должны ломать основной поток
+            # Логируем успешную отправку
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.info(
+                "Telegram уведомление отправлено клиенту %s (ID: %s)",
+                partner.name, partner.telegram_user_id
+            )
+        except Exception as e:
+            # Логируем ошибку, но не поднимаем исключение — уведомления не должны ломать основной поток
+            import logging
+            _logger = logging.getLogger(__name__)
+            _logger.warning(
+                "Ошибка отправки Telegram уведомления клиенту %s (ID: %s): %s",
+                partner.name if partner else "Unknown",
+                partner.telegram_user_id if partner else "Unknown",
+                str(e)
+            )
             return
 
     def _build_booking_message(self, is_reminder=False):
         """Собирает текст сообщения о тренировке для клиента."""
         self.ensure_one()
 
-        # Локализуем время
-        start_local = fields.Datetime.context_timestamp(self, self.start_datetime) if self.start_datetime else None
-        end_local = fields.Datetime.context_timestamp(self, self.end_datetime) if self.end_datetime else None
-
-        date_str = start_local.strftime("%d.%m.%Y") if start_local else ""
-        time_start = start_local.strftime("%H:%M") if start_local else ""
-        time_end = end_local.strftime("%H:%M") if end_local else ""
+        # Используем время напрямую из полей без конвертации часового пояса,
+        # чтобы избежать сдвига времени в сообщениях
+        if self.start_datetime:
+            date_str = self.start_datetime.strftime("%d.%m.%Y")
+            time_start = self.start_datetime.strftime("%H:%M")
+        else:
+            date_str = ""
+            time_start = ""
+        
+        if self.end_datetime:
+            time_end = self.end_datetime.strftime("%H:%M")
+        else:
+            time_end = ""
 
         center = self.sport_center_id.name or ""
         court = self.tennis_court_id.name or ""
@@ -921,22 +942,128 @@ class FinalTrainingBooking(models.Model):
             reminder_hours = 1.0
 
         now = fields.Datetime.now()
-        reminder_limit = now + timedelta(hours=reminder_hours)
+        # Вычисляем временной интервал для отправки напоминаний:
+        # от (reminder_hours - 0.2) до (reminder_hours + 0.2) часов до начала
+        # Это позволяет учесть погрешность времени выполнения cron (запускается каждые 10 минут)
+        reminder_min = now + timedelta(hours=reminder_hours - 0.2)
+        reminder_max = now + timedelta(hours=reminder_hours + 0.2)
 
         # Берём все неподтверждённые напоминания для тренировок,
-        # которые начнутся в ближайшие N часов (и ещё не начались).
+        # которые начнутся в интервале [reminder_min, reminder_max] (примерно за N часов).
         bookings = self.sudo().search([
             ("state", "=", "confirmed"),
             ("reminder_sent", "=", False),
-            ("start_datetime", ">", now),
-            ("start_datetime", "<=", reminder_limit),
+            ("start_datetime", ">=", reminder_min),
+            ("start_datetime", "<=", reminder_max),
         ])
 
+        import logging
+        _logger = logging.getLogger(__name__)
+        _logger.info(
+            "Cron напоминаний: найдено %d тренировок для отправки напоминаний",
+            len(bookings)
+        )
+        
         for booking in bookings:
             message_text = booking._build_booking_message(is_reminder=True)
+            _logger.info(
+                "Отправка напоминания о тренировке ID=%d клиентам: %s",
+                booking.id,
+                ", ".join(booking.client_ids.mapped("name"))
+            )
             for partner in booking.client_ids:
                 booking._send_telegram_message(partner, message_text)
             booking.reminder_sent = True
+
+    @api.model
+    def cron_auto_complete_trainings(self):
+        """Cron-задача: автоматическое завершение тренировок после окончания времени.
+
+        Логика:
+        - Берём тренировки в статусе confirmed
+        - У которых end_datetime < now (время окончания уже прошло)
+        - Автоматически завершаем их (списываем баланс)
+        - Если баланса недостаточно, логируем предупреждение и оставляем в статусе confirmed
+        """
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        now = fields.Datetime.now()
+        
+        # Ищем тренировки, которые уже закончились, но ещё не завершены
+        bookings = self.sudo().search([
+            ("state", "=", "confirmed"),
+            ("end_datetime", "<", now),
+        ])
+        
+        _logger.info(
+            "Cron автоматического завершения: найдено %d тренировок для завершения",
+            len(bookings)
+        )
+        
+        for booking in bookings:
+            try:
+                # Рассчитываем сумму списания для каждого клиента
+                amount_per_client = booking.price_per_hour * booking.duration_hours
+                
+                # Проверяем баланс всех клиентов
+                insufficient_balance_clients = []
+                for client in booking.client_ids:
+                    if client.balance < amount_per_client:
+                        insufficient_balance_clients.append(
+                            f"{client.name} (баланс: {client.balance} {client.balance_currency_id.symbol if client.balance_currency_id else ''}, требуется: {amount_per_client} {client.balance_currency_id.symbol if client.balance_currency_id else ''})"
+                        )
+                
+                if insufficient_balance_clients:
+                    # Если баланса недостаточно, логируем предупреждение и не завершаем
+                    _logger.warning(
+                        "Не удалось автоматически завершить тренировку ID=%d: недостаточно средств на балансе у клиентов: %s",
+                        booking.id,
+                        ", ".join(insufficient_balance_clients)
+                    )
+                    continue
+                
+                # Списываем средства с баланса всех клиентов
+                transaction_model = self.env["final.balance.transaction"]
+                for client in booking.client_ids:
+                    description = _(
+                        "Списание за тренировку '%s' (%s - %s)"
+                    ) % (
+                        booking.name or _("Тренировка"),
+                        booking.start_datetime.strftime("%d.%m.%Y %H:%M") if booking.start_datetime else "",
+                        booking.end_datetime.strftime("%H:%M") if booking.end_datetime else "",
+                    )
+                    
+                    try:
+                        transaction_model.action_withdrawal(
+                            client.id,
+                            amount_per_client,
+                            booking.id,
+                            description,
+                        )
+                    except ValidationError as e:
+                        _logger.error(
+                            "Ошибка при автоматическом списании средств с баланса клиента '%s' для тренировки ID=%d: %s",
+                            client.name,
+                            booking.id,
+                            str(e)
+                        )
+                        # Если ошибка при списании, не завершаем тренировку
+                        break
+                else:
+                    # Если все списания прошли успешно, завершаем тренировку
+                    booking.write({"state": "completed"})
+                    _logger.info(
+                        "Тренировка ID=%d автоматически завершена, средства списаны с балансов клиентов",
+                        booking.id
+                    )
+                    
+            except Exception as e:
+                _logger.error(
+                    "Ошибка при автоматическом завершении тренировки ID=%d: %s",
+                    booking.id,
+                    str(e)
+                )
     
     def _notify_manager_new_request(self):
         """Отправка уведомления менеджеру о новом запросе"""

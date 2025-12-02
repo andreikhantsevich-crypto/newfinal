@@ -145,7 +145,8 @@
             <field name="name">Клиенты</field>
             <field name="res_model">res.partner</field>
             <field name="view_mode">list,form</field>
-            <!-- Показываем только наших клиентов-людей с привязанным Telegram -->
+            <!-- Domain будет ограничен через record rule для менеджера -->
+            <!-- Для директора показываем всех клиентов с Telegram ID -->
             <field name="domain">[('is_company', '=', False), ('telegram_user_id', '!=', False)]</field>
             <field name="context">
                 {

@@ -48,6 +48,7 @@ class FinalSportCenter(models.Model):
         "center_id",
         "partner_id",
         string="Клиенты",
+        help="Клиенты этого спортивного центра (с привязанным Telegram ID)",
     )
     trainer_ids = fields.One2many(
         "final.center.trainer",
