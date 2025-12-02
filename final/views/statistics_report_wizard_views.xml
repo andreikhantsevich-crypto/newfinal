@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_final_statistics_report_wizard_form" model="ir.ui.view">
+            <field name="name">final.statistics.report.wizard.form</field>
+            <field name="model">final.statistics.report.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Статистика по тренировкам">
+                    <sheet>
+                        <group string="Период и фильтры">
+                            <group>
+                                <field name="date_from"/>
+                                <field name="date_to"/>
+                            </group>
+                            <group>
+                                <field name="center_ids" widget="many2many_tags"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Самый прибыльный тренер">
+                                <group>
+                                    <field name="most_profitable_trainer_id" readonly="1"/>
+                                    <field name="most_profitable_trainer_profit" readonly="1"/>
+                                </group>
+                            </page>
+                            <page string="Самый посещаемый вид тренировки">
+                                <group>
+                                    <field name="most_popular_training_type_id" readonly="1"/>
+                                    <field name="most_popular_training_type_count" readonly="1"/>
+                                </group>
+                            </page>
+                            <page string="Самый активный клиент">
+                                <group>
+                                    <field name="most_active_client_id" readonly="1"/>
+                                    <field name="most_active_client_count" readonly="1"/>
+                                </group>
+                            </page>
+                        </notebook>
+                        <footer>
+                            <button string="Обновить" type="object"
+                                    name="action_compute_statistics" class="btn-primary"/>
+                            <button string="Закрыть" class="btn-secondary" special="cancel"/>
+                        </footer>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_final_statistics_report_wizard" model="ir.actions.act_window">
+            <field name="name">Статистика</field>
+            <field name="res_model">final.statistics.report.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_final_statistics_report_wizard_form"/>
+            <field name="target">new</field>
+            <field name="context">{}</field>
+        </record>
+    </data>
+</odoo>
+
+

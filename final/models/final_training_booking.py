@@ -504,6 +504,42 @@ class FinalTrainingBooking(models.Model):
                     )
                 )
 
+    @api.constrains("trainer_id", "start_datetime", "end_datetime")
+    def _check_trainer_availability(self):
+        """Проверка занятости тренера (нельзя вести две тренировки одновременно).
+
+        Требование ТЗ (п.12) в трактовке:
+        тренер может работать в нескольких СЦ, но не может
+        иметь пересекающиеся по времени тренировки (даже в разных СЦ/на разных кортах).
+        """
+        for record in self:
+            if not record.trainer_id or not record.start_datetime or not record.end_datetime:
+                continue
+
+            overlapping = self.search([
+                ("trainer_id", "=", record.trainer_id.id),
+                ("id", "!=", record.id),
+                ("state", "in", ["draft", "pending_approval", "confirmed"]),
+                ("start_datetime", "<", record.end_datetime),
+                ("end_datetime", ">", record.start_datetime),
+            ], limit=1)
+
+            if overlapping:
+                raise ValidationError(
+                    _(
+                        "Тренер '%s' уже занят другой тренировкой в это время "
+                        "(СЦ: %s, корт: %s, время: %s - %s). "
+                        "Тренер не может проводить несколько тренировок одновременно."
+                    )
+                    % (
+                        record.trainer_id.name or _("Не указан"),
+                        overlapping.sport_center_id.name or _("Не указан"),
+                        overlapping.tennis_court_id.name or _("Не указан"),
+                        overlapping.start_datetime.strftime("%d.%m.%Y %H:%M") if overlapping.start_datetime else "",
+                        overlapping.end_datetime.strftime("%H:%M") if overlapping.end_datetime else "",
+                    )
+                )
+
     @api.constrains("tennis_court_id", "start_datetime", "end_datetime")
     def _check_court_work_time(self):
         """Проверка рабочих часов корта (берутся из СЦ)"""

@@ -6,3 +6,4 @@ from . import apply_trainer_wizard
 from . import training_booking_wizard
 from . import training_booking_reject_wizard
 from . import balance_deposit_wizard
+from . import statistics_report_wizard

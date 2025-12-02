@@ -256,6 +256,20 @@
             <field name="groups_id" eval="[(6, 0, [])]"/>
             <field name="active" eval="False"/>
         </record>
+
+        <!-- Меню отчетов для директора -->
+        <menuitem id="menu_final_reports"
+                  name="Отчеты"
+                  parent="menu_final_root"
+                  sequence="40"
+                  groups="final.group_final_director"/>
+
+        <menuitem id="menu_final_statistics_report"
+                  name="Статистика (тренеры / виды / клиенты)"
+                  parent="menu_final_reports"
+                  action="action_final_statistics_report_wizard"
+                  sequence="10"
+                  groups="final.group_final_director"/>
     </data>
 </odoo>
 

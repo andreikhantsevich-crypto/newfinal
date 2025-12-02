@@ -54,6 +54,7 @@ class FinalCenterTrainer(models.Model):
         readonly=True,
     )
 
+
     @api.constrains("employee_id", "sport_center_id")
     def _check_not_manager(self):
         for record in self:

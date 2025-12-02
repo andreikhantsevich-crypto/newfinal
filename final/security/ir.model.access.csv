@@ -39,4 +39,5 @@ access_res_partner_director,access.res.partner.director,base.model_res_partner,f
 access_final_training_recurring_director,access.final.training.recurring.director,model_final_training_recurring,final.group_final_director,1,1,1,1
 access_final_training_recurring_manager,access.final.training.recurring.manager,model_final_training_recurring,final.group_final_manager,1,1,1,1
 access_final_training_recurring_trainer,access.final.training.recurring.trainer,model_final_training_recurring,final.group_final_trainer,1,1,1,1
+access_final_statistics_report_wizard_director,access.final.statistics.report.wizard.director,model_final_statistics_report_wizard,final.group_final_director,1,1,1,1
 access_res_users_final_manager,access.res.users.final.manager,base.model_res_users,final.group_final_manager,1,0,0,0
