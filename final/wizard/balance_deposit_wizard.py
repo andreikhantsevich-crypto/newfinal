@@ -82,24 +82,8 @@ class BalanceDepositWizard(models.TransientModel):
         description = self.description or _("Пополнение баланса")
         self.partner_id.deposit_balance(self.amount, description)
         
-        # Возвращаем сообщение об успехе
+        # Закрываем форму wizard'а
         return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {
-                "title": _("Баланс пополнен"),
-                "message": _(
-                    "Баланс клиента '%s' успешно пополнен на %s %s. "
-                    "Новый баланс: %s %s."
-                ) % (
-                    self.partner_id.name,
-                    self.amount,
-                    self.currency_id.symbol if self.currency_id else "",
-                    self.new_balance,
-                    self.currency_id.symbol if self.currency_id else "",
-                ),
-                "type": "success",
-                "sticky": False,
-            },
+            "type": "ir.actions.act_window_close",
         }
 

@@ -109,12 +109,12 @@
                                 string="Одобрить" 
                                 type="object"
                                 class="oe_highlight"
-                                invisible="state != 'pending_approval'"
+                                invisible="state != 'pending_approval' or cancel_requested or reschedule_requested"
                                 groups="final.group_final_manager,final.group_final_director"/>
                         <button name="action_reject" 
                                 string="Отклонить" 
                                 type="object"
-                                invisible="state != 'pending_approval'"
+                                invisible="state != 'pending_approval' or cancel_requested or reschedule_requested"
                                 groups="final.group_final_manager,final.group_final_director"/>
                         <button name="action_complete" 
                                 string="Завершить" 
@@ -122,10 +122,37 @@
                                 class="oe_highlight"
                                 invisible="state != 'confirmed'"
                                 groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_reschedule" 
+                                string="Перенести" 
+                                type="object"
+                                icon="fa-calendar"
+                                invisible="state in ('completed', 'cancelled')"/>
                         <button name="action_cancel" 
                                 string="Отменить" 
                                 type="object"
                                 invisible="state in ('completed', 'cancelled')"/>
+                        <button name="action_approve_cancel" 
+                                string="Одобрить отмену" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="not cancel_requested"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_reject_cancel" 
+                                string="Отклонить отмену" 
+                                type="object"
+                                invisible="not cancel_requested"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_approve_reschedule" 
+                                string="Одобрить перенос" 
+                                type="object"
+                                class="oe_highlight"
+                                invisible="not reschedule_requested"
+                                groups="final.group_final_manager,final.group_final_director"/>
+                        <button name="action_reject_reschedule" 
+                                string="Отклонить перенос" 
+                                type="object"
+                                invisible="not reschedule_requested"
+                                groups="final.group_final_manager,final.group_final_director"/>
                         <button name="action_set_draft" 
                                 string="В черновик" 
                                 type="object"
@@ -188,6 +215,26 @@
                                        invisible="not rejected_date"/>
                                 <field name="rejection_reason" readonly="1" 
                                        invisible="not rejection_reason"/>
+                            </group>
+                        </group>
+                        
+                        <group invisible="not cancel_requested and not reschedule_requested">
+                            <group string="Запрос на отмену" 
+                                   invisible="not cancel_requested">
+                                <field name="cancel_requested" invisible="1"/>
+                                <field name="cancel_requested_by" readonly="1"/>
+                                <field name="cancel_requested_date" readonly="1"/>
+                                <field name="cancel_request_reason" readonly="1"/>
+                            </group>
+                            <group string="Запрос на перенос" 
+                                   invisible="not reschedule_requested">
+                                <field name="reschedule_requested" invisible="1"/>
+                                <field name="reschedule_requested_by" readonly="1"/>
+                                <field name="reschedule_requested_date" readonly="1"/>
+                                <field name="reschedule_new_start_datetime" readonly="1"/>
+                                <field name="reschedule_new_end_datetime" readonly="1"/>
+                                <field name="reschedule_new_court_id" readonly="1"/>
+                                <field name="reschedule_reason" readonly="1"/>
                             </group>
                         </group>
                         

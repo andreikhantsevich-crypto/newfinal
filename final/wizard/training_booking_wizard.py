@@ -371,9 +371,16 @@ class TrainingBookingWizard(models.TransientModel):
                         }
                 
                 # Для тренера не устанавливаем домен на trainer_id (поле readonly)
+                # Обновляем домен для клиентов
+                self.client_ids = False  # Сбрасываем выбранных клиентов при смене СЦ
                 return {
                     "domain": {
                         "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
+                        "client_ids": [
+                            ("is_company", "=", False),
+                            ("telegram_user_id", "!=", False),
+                            ("sport_center_ids", "in", [self.sport_center_id.id]),
+                        ],
                     }
                 }
             
@@ -403,17 +410,30 @@ class TrainingBookingWizard(models.TransientModel):
             if self.trainer_id and self.trainer_id.id not in trainer_ids:
                 self.trainer_id = False
             
+            # Сбрасываем выбранных клиентов при смене СЦ
+            self.client_ids = False
+            
             return {
                 "domain": {
                     "tennis_court_id": [("sport_center_id", "=", self.sport_center_id.id)],
+                    "client_ids": [
+                        ("is_company", "=", False),
+                        ("telegram_user_id", "!=", False),
+                        ("sport_center_ids", "in", [self.sport_center_id.id]),
+                    ],
                 }
             }
         else:
             self.tennis_court_id = False
             self.trainer_id = False
+            self.client_ids = False  # Сбрасываем клиентов, если СЦ не выбран
             return {
                 "domain": {
                     "tennis_court_id": [],
+                    "client_ids": [
+                        ("is_company", "=", False),
+                        ("telegram_user_id", "!=", False),
+                    ],
                 }
             }
 

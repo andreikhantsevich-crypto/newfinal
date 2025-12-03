@@ -212,6 +212,64 @@ class FinalTrainingBooking(models.Model):
         store=False,
         help="Информация о балансе клиентов для менеджера",
     )
+    # Поля для запроса на отмену
+    cancel_requested = fields.Boolean(
+        string="Запрос на отмену",
+        default=False,
+        help="Запрос на отмену тренировки, ожидающий одобрения менеджера",
+    )
+    cancel_requested_by = fields.Many2one(
+        "res.users",
+        string="Запросил отмену",
+        readonly=True,
+        help="Пользователь, который запросил отмену тренировки",
+    )
+    cancel_requested_date = fields.Datetime(
+        string="Дата запроса отмены",
+        readonly=True,
+    )
+    cancel_request_reason = fields.Text(
+        string="Причина отмены",
+        readonly=True,
+        help="Причина запроса на отмену тренировки",
+    )
+    # Поля для запроса на перенос
+    reschedule_requested = fields.Boolean(
+        string="Запрос на перенос",
+        default=False,
+        help="Запрос на перенос тренировки, ожидающий одобрения менеджера",
+    )
+    reschedule_requested_by = fields.Many2one(
+        "res.users",
+        string="Запросил перенос",
+        readonly=True,
+        help="Пользователь, который запросил перенос тренировки",
+    )
+    reschedule_requested_date = fields.Datetime(
+        string="Дата запроса переноса",
+        readonly=True,
+    )
+    reschedule_new_start_datetime = fields.Datetime(
+        string="Новое время начала",
+        readonly=True,
+        help="Новое время начала тренировки (при переносе)",
+    )
+    reschedule_new_end_datetime = fields.Datetime(
+        string="Новое время окончания",
+        readonly=True,
+        help="Новое время окончания тренировки (при переносе)",
+    )
+    reschedule_new_court_id = fields.Many2one(
+        "final.tennis.court",
+        string="Новый корт",
+        readonly=True,
+        help="Новый корт для тренировки (при переносе, опционально)",
+    )
+    reschedule_reason = fields.Text(
+        string="Причина переноса",
+        readonly=True,
+        help="Причина запроса на перенос тренировки",
+    )
 
     _sql_constraints = [
         (
@@ -729,7 +787,9 @@ class FinalTrainingBooking(models.Model):
     
     def _notify_trainer_approval(self):
         """Отправка уведомления тренеру об одобрении"""
-        if not self.trainer_id or not self.trainer_id.user_id:
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id
+        if not trainer or not trainer.user_id:
             return
         
         self.env["mail.message"].create({
@@ -745,12 +805,14 @@ class FinalTrainingBooking(models.Model):
                 self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
                 self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
             ),
-            "partner_ids": [(4, self.trainer_id.user_id.partner_id.id)],
+            "partner_ids": [(4, trainer.user_id.partner_id.id)],
         })
     
     def _notify_trainer_rejection(self):
         """Отправка уведомления тренеру об отклонении"""
-        if not self.trainer_id or not self.trainer_id.user_id:
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id
+        if not trainer or not trainer.user_id:
             return
         
         reason_text = f"\n\nПричина: {self.rejection_reason}" if self.rejection_reason else ""
@@ -769,8 +831,234 @@ class FinalTrainingBooking(models.Model):
                 self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
                 reason_text,
             ),
-            "partner_ids": [(4, self.trainer_id.user_id.partner_id.id)],
+            "partner_ids": [(4, trainer.user_id.partner_id.id)],
         })
+    
+    def _notify_trainer_cancel_approved(self):
+        """Отправка уведомления тренеру об одобрении отмены"""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id
+        if not trainer or not trainer.user_id:
+            return
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Запрос на отмену одобрен"),
+            "body": _(
+                "Ваш запрос на отмену тренировки '%s' (%s - %s) был одобрен менеджером."
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+            ),
+            "partner_ids": [(4, trainer.user_id.partner_id.id)],
+        })
+    
+    def _notify_trainer_cancel_rejected(self, rejection_reason=""):
+        """Отправка уведомления тренеру об отклонении отмены"""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id
+        if not trainer or not trainer.user_id:
+            return
+        
+        reason_text = f"\n\nПричина: {rejection_reason}" if rejection_reason else ""
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Запрос на отмену отклонен"),
+            "body": _(
+                "Ваш запрос на отмену тренировки '%s' (%s - %s) был отклонен менеджером.%s"
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+                reason_text,
+            ),
+            "partner_ids": [(4, trainer.user_id.partner_id.id)],
+        })
+    
+    def _notify_trainer_reschedule_approved(self):
+        """Отправка уведомления тренеру об одобрении переноса"""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id
+        if not trainer or not trainer.user_id:
+            return
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Запрос на перенос одобрен"),
+            "body": _(
+                "Ваш запрос на перенос тренировки '%s' был одобрен менеджером. "
+                "Новое время: %s - %s"
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+            ),
+            "partner_ids": [(4, trainer.user_id.partner_id.id)],
+        })
+    
+    def _notify_trainer_reschedule_rejected(self, rejection_reason=""):
+        """Отправка уведомления тренеру об отклонении переноса"""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id
+        if not trainer or not trainer.user_id:
+            return
+        
+        reason_text = f"\n\nПричина: {rejection_reason}" if rejection_reason else ""
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Запрос на перенос отклонен"),
+            "body": _(
+                "Ваш запрос на перенос тренировки '%s' (%s - %s) был отклонен менеджером.%s"
+            ) % (
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+                reason_text,
+            ),
+            "partner_ids": [(4, trainer.user_id.partner_id.id)],
+        })
+    
+    def _notify_manager_cancel_request(self):
+        """Отправка уведомления менеджеру о запросе на отмену"""
+        if not self.sport_center_id or not self.sport_center_id.manager_id or not self.sport_center_id.manager_id.user_id:
+            return
+        
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer_name = self.sudo().trainer_id.name if self.sudo().trainer_id else _("Не указан")
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Новый запрос на отмену тренировки"),
+            "body": _(
+                "Тренер %s запросил отмену тренировки '%s' (%s - %s). "
+                "Требуется ваше одобрение."
+            ) % (
+                trainer_name,
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+            ),
+            "partner_ids": [(4, self.sport_center_id.manager_id.user_id.partner_id.id)],
+        })
+    
+    def _notify_manager_reschedule_request(self):
+        """Отправка уведомления менеджеру о запросе на перенос"""
+        if not self.sport_center_id or not self.sport_center_id.manager_id or not self.sport_center_id.manager_id.user_id:
+            return
+        
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer_name = self.sudo().trainer_id.name if self.sudo().trainer_id else _("Не указан")
+        
+        new_time_str = ""
+        if self.reschedule_new_start_datetime and self.reschedule_new_end_datetime:
+            new_time_str = f"Новое время: {self.reschedule_new_start_datetime.strftime('%d.%m.%Y %H:%M')} - {self.reschedule_new_end_datetime.strftime('%H:%M')}"
+        
+        self.env["mail.message"].create({
+            "model": "final.training.booking",
+            "res_id": self.id,
+            "message_type": "notification",
+            "subtype_id": self.env.ref("mail.mt_note").id,
+            "subject": _("Новый запрос на перенос тренировки"),
+            "body": _(
+                "Тренер %s запросил перенос тренировки '%s' (%s - %s). "
+                "%s "
+                "Требуется ваше одобрение."
+            ) % (
+                trainer_name,
+                self.name or _("Тренировка"),
+                self.start_datetime.strftime("%d.%m.%Y %H:%M") if self.start_datetime else "",
+                self.end_datetime.strftime("%H:%M") if self.end_datetime else "",
+                new_time_str,
+            ),
+            "partner_ids": [(4, self.sport_center_id.manager_id.user_id.partner_id.id)],
+        })
+    
+    def _notify_clients_booking_cancelled(self):
+        """Отправка уведомлений клиентам об отмене тренировки"""
+        self.ensure_one()
+        
+        if not self.client_ids:
+            return
+        
+        # Формируем сообщение об отмене
+        if self.start_datetime:
+            date_str = self.start_datetime.strftime("%d.%m.%Y")
+            time_start = self.start_datetime.strftime("%H:%M")
+        else:
+            date_str = ""
+            time_start = ""
+        
+        if self.end_datetime:
+            time_end = self.end_datetime.strftime("%H:%M")
+        else:
+            time_end = ""
+        
+        center = self.sport_center_id.name or ""
+        court = self.tennis_court_id.name or ""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id.name if self.sudo().trainer_id else ""
+        
+        message_text = "\n".join([
+            "❌ <b>Тренировка отменена</b>",
+            "",
+            f"📅 {date_str} {time_start}–{time_end}",
+            f"🏟 {center} — {court}" if center or court else "",
+            f"👨‍🏫 Тренер: {trainer}" if trainer else "",
+        ])
+        
+        for partner in self.client_ids:
+            self._send_telegram_message(partner, message_text)
+    
+    def _notify_clients_booking_rescheduled(self, old_start, old_end, old_court):
+        """Отправка уведомлений клиентам о переносе тренировки"""
+        self.ensure_one()
+        
+        if not self.client_ids:
+            return
+        
+        # Формируем сообщение о переносе
+        old_date_str = old_start.strftime("%d.%m.%Y") if old_start else ""
+        old_time_start = old_start.strftime("%H:%M") if old_start else ""
+        old_time_end = old_end.strftime("%H:%M") if old_end else ""
+        
+        new_date_str = self.start_datetime.strftime("%d.%m.%Y") if self.start_datetime else ""
+        new_time_start = self.start_datetime.strftime("%H:%M") if self.start_datetime else ""
+        new_time_end = self.end_datetime.strftime("%H:%M") if self.end_datetime else ""
+        
+        center = self.sport_center_id.name or ""
+        court = self.tennis_court_id.name or ""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id.name if self.sudo().trainer_id else ""
+        
+        message_text = "\n".join([
+            "🔄 <b>Тренировка перенесена</b>",
+            "",
+            f"Старое время: {old_date_str} {old_time_start}–{old_time_end}",
+            f"Новое время: {new_date_str} {new_time_start}–{new_time_end}",
+            f"🏟 {center} — {court}" if center or court else "",
+            f"👨‍🏫 Тренер: {trainer}" if trainer else "",
+        ])
+        
+        for partner in self.client_ids:
+            self._send_telegram_message(partner, message_text)
 
     # === Telegram-уведомления клиентам ===
 
@@ -844,7 +1132,8 @@ class FinalTrainingBooking(models.Model):
 
         center = self.sport_center_id.name or ""
         court = self.tennis_court_id.name or ""
-        trainer = self.trainer_id.name or ""
+        # Используем sudo() для чтения trainer_id, чтобы обойти правила доступа
+        trainer = self.sudo().trainer_id.name if self.sudo().trainer_id else ""
         training_type = self.training_type_id.name or ""
 
         if is_reminder:
@@ -1156,9 +1445,55 @@ class FinalTrainingBooking(models.Model):
         return True
 
     def action_cancel(self):
-        """Отмена тренировки"""
-        self.write({"state": "cancelled"})
-        return True
+        """Отмена тренировки
+        
+        Если тренер инициирует отмену - требуется апрув менеджера.
+        Если менеджер/директор - отмена происходит сразу.
+        """
+        self.ensure_one()
+        
+        # Проверяем права пользователя
+        is_trainer = self.env.user.has_group("final.group_final_trainer")
+        is_manager = self.env.user.has_group("final.group_final_manager")
+        is_director = self.env.user.has_group("final.group_final_director")
+        
+        # Если тренер запрашивает отмену - открываем wizard для указания причины
+        if is_trainer and not (is_manager or is_director):
+            # Проверяем, что тренировка в статусе, который можно отменить
+            if self.state not in ("draft", "pending_approval", "confirmed"):
+                raise ValidationError(
+                    _("Нельзя отменить тренировку в статусе '%s'.") % self._fields["state"]._description_string(self.env)
+                )
+            
+            # Открываем wizard для запроса отмены
+            return {
+                "type": "ir.actions.act_window",
+                "name": _("Запрос на отмену тренировки"),
+                "res_model": "final.training.booking.cancel.wizard",
+                "view_mode": "form",
+                "target": "new",
+                "context": {
+                    "default_booking_id": self.id,
+                },
+            }
+        
+        # Если менеджер или директор - отменяем сразу
+        if is_manager or is_director:
+            # Проверяем, что тренировка в статусе, который можно отменить
+            if self.state in ("completed", "cancelled"):
+                raise ValidationError(
+                    _("Нельзя отменить тренировку в статусе '%s'.") % self._fields["state"]._description_string(self.env)
+                )
+            
+            self.write({"state": "cancelled"})
+            
+            # Отправляем уведомления клиентам об отмене
+            self._notify_clients_booking_cancelled()
+            
+            return True
+        
+        # Если пользователь не имеет прав
+        raise ValidationError(_("У вас нет прав для отмены тренировки."))
 
     def action_set_draft(self):
         """Возврат в черновик"""
@@ -1167,6 +1502,221 @@ class FinalTrainingBooking(models.Model):
             "approved_by": False,
             "approved_date": False,
         })
+        return True
+    
+    def action_reschedule(self):
+        """Запрос на перенос тренировки
+        
+        Если тренер инициирует перенос - требуется апрув менеджера.
+        Если менеджер/директор - открывается wizard для переноса.
+        """
+        self.ensure_one()
+        
+        # Проверяем права пользователя
+        is_trainer = self.env.user.has_group("final.group_final_trainer")
+        is_manager = self.env.user.has_group("final.group_final_manager")
+        is_director = self.env.user.has_group("final.group_final_director")
+        
+        # Проверяем, что тренировка в статусе, который можно перенести
+        if self.state in ("completed", "cancelled"):
+            raise ValidationError(
+                _("Нельзя перенести тренировку в статусе '%s'.") % self._fields["state"]._description_string(self.env)
+            )
+        
+        # Открываем wizard для переноса
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Перенос тренировки"),
+            "res_model": "final.training.booking.reschedule.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_booking_id": self.id,
+                "default_is_trainer": is_trainer and not (is_manager or is_director),
+            },
+        }
+    
+    def action_approve_cancel(self):
+        """Одобрение запроса на отмену менеджером"""
+        self.ensure_one()
+        
+        # Проверка прав - только менеджер или директор
+        if not self.env.user.has_group("final.group_final_manager") and not self.env.user.has_group("final.group_final_director"):
+            raise ValidationError(_("Только менеджер или директор могут одобрять запросы на отмену."))
+        
+        # Проверка что есть запрос на отмену
+        if not self.cancel_requested:
+            raise ValidationError(_("Нет запроса на отмену для этой тренировки."))
+        
+        # Отменяем тренировку
+        self.write({
+            "state": "cancelled",
+            "cancel_requested": False,
+        })
+        
+        # Отправляем уведомления клиентам об отмене
+        self._notify_clients_booking_cancelled()
+        
+        # Отправляем уведомление тренеру об одобрении отмены
+        self._notify_trainer_cancel_approved()
+        
+        return True
+    
+    def action_reject_cancel(self):
+        """Отклонение запроса на отмену менеджером"""
+        self.ensure_one()
+        
+        # Проверка прав - только менеджер или директор
+        if not self.env.user.has_group("final.group_final_manager") and not self.env.user.has_group("final.group_final_director"):
+            raise ValidationError(_("Только менеджер или директор могут отклонять запросы на отмену."))
+        
+        # Проверка что есть запрос на отмену
+        if not self.cancel_requested:
+            raise ValidationError(_("Нет запроса на отмену для этой тренировки."))
+        
+        # Открываем wizard для указания причины отклонения
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Отклонить запрос на отмену"),
+            "res_model": "final.training.booking.reject.cancel.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_booking_id": self.id,
+            },
+        }
+    
+    def action_reject_cancel_confirm(self, rejection_reason=""):
+        """Подтверждение отклонения запроса на отмену с причиной"""
+        self.ensure_one()
+        
+        # Подготавливаем значения для обновления
+        update_vals = {
+            "cancel_requested": False,
+            "cancel_requested_by": False,
+            "cancel_requested_date": False,
+            "cancel_request_reason": False,
+        }
+        
+        # Если тренировка была в статусе "pending_approval" из-за запроса на отмену,
+        # возвращаем её в статус "confirmed" после отклонения запроса
+        if self.state == "pending_approval":
+            update_vals["state"] = "confirmed"
+        
+        # Сбрасываем запрос на отмену
+        self.write(update_vals)
+        
+        # Отправляем уведомление тренеру об отклонении отмены
+        self._notify_trainer_cancel_rejected(rejection_reason)
+        
+        return True
+    
+    def action_approve_reschedule(self):
+        """Одобрение запроса на перенос менеджером"""
+        self.ensure_one()
+        
+        # Проверка прав - только менеджер или директор
+        if not self.env.user.has_group("final.group_final_manager") and not self.env.user.has_group("final.group_final_director"):
+            raise ValidationError(_("Только менеджер или директор могут одобрять запросы на перенос."))
+        
+        # Проверка что есть запрос на перенос
+        if not self.reschedule_requested:
+            raise ValidationError(_("Нет запроса на перенос для этой тренировки."))
+        
+        if not self.reschedule_new_start_datetime or not self.reschedule_new_end_datetime:
+            raise ValidationError(_("Не указано новое время для переноса."))
+        
+        # Сохраняем старое время для уведомлений
+        old_start = self.start_datetime
+        old_end = self.end_datetime
+        old_court = self.tennis_court_id
+        
+        # Переносим тренировку
+        update_vals = {
+            "start_datetime": self.reschedule_new_start_datetime,
+            "end_datetime": self.reschedule_new_end_datetime,
+            "reschedule_requested": False,
+            "reschedule_requested_by": False,
+            "reschedule_requested_date": False,
+            "reschedule_reason": False,
+        }
+        
+        # Если указан новый корт - обновляем его
+        if self.reschedule_new_court_id:
+            update_vals["tennis_court_id"] = self.reschedule_new_court_id.id
+        
+        # Сбрасываем поля переноса
+        update_vals.update({
+            "reschedule_new_start_datetime": False,
+            "reschedule_new_end_datetime": False,
+            "reschedule_new_court_id": False,
+        })
+        
+        # Если тренировка была в статусе "pending_approval" из-за запроса на перенос,
+        # возвращаем её в статус "confirmed" после одобрения
+        if self.state == "pending_approval":
+            update_vals["state"] = "confirmed"
+        
+        self.write(update_vals)
+        
+        # Отправляем уведомления клиентам о переносе
+        self._notify_clients_booking_rescheduled(old_start, old_end, old_court)
+        
+        # Отправляем уведомление тренеру об одобрении переноса
+        self._notify_trainer_reschedule_approved()
+        
+        return True
+    
+    def action_reject_reschedule(self):
+        """Отклонение запроса на перенос менеджером"""
+        self.ensure_one()
+        
+        # Проверка прав - только менеджер или директор
+        if not self.env.user.has_group("final.group_final_manager") and not self.env.user.has_group("final.group_final_director"):
+            raise ValidationError(_("Только менеджер или директор могут отклонять запросы на перенос."))
+        
+        # Проверка что есть запрос на перенос
+        if not self.reschedule_requested:
+            raise ValidationError(_("Нет запроса на перенос для этой тренировки."))
+        
+        # Открываем wizard для указания причины отклонения
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Отклонить запрос на перенос"),
+            "res_model": "final.training.booking.reject.reschedule.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_booking_id": self.id,
+            },
+        }
+    
+    def action_reject_reschedule_confirm(self, rejection_reason=""):
+        """Подтверждение отклонения запроса на перенос с причиной"""
+        self.ensure_one()
+        
+        # Подготавливаем значения для обновления
+        update_vals = {
+            "reschedule_requested": False,
+            "reschedule_requested_by": False,
+            "reschedule_requested_date": False,
+            "reschedule_new_start_datetime": False,
+            "reschedule_new_end_datetime": False,
+            "reschedule_new_court_id": False,
+            "reschedule_reason": False,
+        }
+        
+        # Если тренировка была в статусе "pending_approval" из-за запроса на перенос,
+        # возвращаем её в статус "confirmed" после отклонения запроса
+        if self.state == "pending_approval":
+            update_vals["state"] = "confirmed"
+        
+        # Сбрасываем запрос на перенос
+        self.write(update_vals)
+        
+        # Отправляем уведомление тренеру об отклонении переноса
+        self._notify_trainer_reschedule_rejected(rejection_reason)
+        
         return True
     
     def read(self, fields=None, load='_classic_read'):

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- View формы wizard запроса на отмену тренировки -->
+        <record id="view_training_booking_cancel_wizard_form" model="ir.ui.view">
+            <field name="name">final.training.booking.cancel.wizard.form</field>
+            <field name="model">final.training.booking.cancel.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Запрос на отмену тренировки">
+                    <sheet>
+                        <group>
+                            <field name="booking_id" invisible="1"/>
+                            <field name="booking_name" readonly="1" string="Тренировка"/>
+                            <field name="cancel_reason" 
+                                   placeholder="Укажите причину отмены тренировки..."/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="action_request_cancel" 
+                                string="Отправить запрос на отмену" 
+                                type="object"
+                                class="oe_highlight"
+                                icon="fa-times"/>
+                        <button string="Отмена" 
+                                class="btn-secondary" 
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>
+
