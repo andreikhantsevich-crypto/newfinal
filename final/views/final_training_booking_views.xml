@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Поиск тренировок -->
         <record id="view_final_training_booking_search" model="ir.ui.view">
             <field name="name">final.training.booking.search</field>
             <field name="model">final.training.booking</field>
@@ -15,7 +14,6 @@
                     <field name="client_ids" string="Клиент"/>
                     <field name="start_datetime" string="Дата начала"/>
                     
-                    <!-- Фильтры по статусу -->
                     <filter string="На одобрении" name="pending_approval" 
                             domain="[('state', '=', 'pending_approval')]"/>
                     <filter string="Одобренные" name="confirmed" 
@@ -25,7 +23,6 @@
                     <filter string="Завершенные" name="completed" 
                             domain="[('state', '=', 'completed')]"/>
                     
-                    <!-- Фильтры по типу тренировки -->
                     <separator/>
                     <filter string="Индивидуальная" name="type_individual" 
                             domain="[('training_type_id.code', '=', 'individual')]"/>
@@ -34,12 +31,10 @@
                     <filter string="Групповая" name="type_group" 
                             domain="[('training_type_id.code', '=', 'group')]"/>
                     
-                    <!-- Фильтр по повторяющимся -->
                     <separator/>
                     <filter string="Повторяющиеся" name="recurring" 
                             domain="[('is_recurring', '=', True)]"/>
                     
-                    <!-- Фильтры по периоду -->
                     <separator/>
                     <filter string="Ближайшие" name="upcoming" 
                             domain="[('start_datetime', '>=', (context_today()))]"/>
@@ -49,7 +44,6 @@
                             domain="[('trainer_id.user_id', '=', uid)]"
                             groups="final.group_final_trainer"/>
                     
-                    <!-- Группировка -->
                     <group expand="0" string="Группировка">
                         <filter string="По тренеру" name="group_trainer" 
                                 context="{'group_by': 'trainer_id'}"/>
@@ -68,7 +62,6 @@
             </field>
         </record>
 
-        <!-- Список тренировок -->
         <record id="view_final_training_booking_list" model="ir.ui.view">
             <field name="name">final.training.booking.list</field>
             <field name="model">final.training.booking</field>
@@ -92,7 +85,6 @@
             </field>
         </record>
 
-        <!-- Форма тренировки -->
         <record id="view_final_training_booking_form" model="ir.ui.view">
             <field name="name">final.training.booking.form</field>
             <field name="model">final.training.booking</field>
@@ -315,7 +307,6 @@
             </field>
         </record>
 
-        <!-- Календарь тренировок -->
         <record id="view_final_training_booking_calendar" model="ir.ui.view">
             <field name="name">final.training.booking.calendar</field>
             <field name="model">final.training.booking</field>
@@ -337,7 +328,6 @@
             </field>
         </record>
 
-        <!-- Action для списка тренировок (менеджер и тренер) -->
         <record id="action_final_training_booking" model="ir.actions.act_window">
             <field name="name">Тренировки</field>
             <field name="res_model">final.training.booking</field>

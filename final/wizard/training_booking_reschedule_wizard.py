@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 from datetime import datetime, timedelta
@@ -23,10 +22,8 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
     
     @api.depends("booking_id")
     def _compute_booking_name(self):
-        """Вычисляет название тренировки с использованием sudo() для обхода правил доступа"""
         for record in self:
             if record.booking_id:
-                # Используем sudo() для чтения booking, чтобы обойти правила доступа к trainer_id
                 booking = record.booking_id.sudo()
                 record.booking_name = booking.name or _("Тренировка")
             else:
@@ -70,11 +67,9 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
 
     @api.model
     def default_get(self, fields_list):
-        """Устанавливает значения по умолчанию"""
         res = super().default_get(fields_list)
         if "default_booking_id" in self.env.context:
             booking_id = self.env.context["default_booking_id"]
-            # Используем sudo() для чтения booking, чтобы обойти правила доступа к trainer_id
             booking = self.env["final.training.booking"].sudo().browse(booking_id)
             res["booking_id"] = booking_id
             
@@ -95,22 +90,18 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
 
     @api.onchange("date", "start_time", "duration", "tennis_court_id")
     def _onchange_time_slot(self):
-        """Проверка доступности времени при изменении"""
         if not all([self.date, self.start_time is not None, self.duration]):
             return
         
-        # Пропускаем проверку, если время равно 0.0 (дефолтное значение)
         if self.start_time == 0.0:
             return
         
-        # Проверка на прошлое время
         start_datetime = fields.Datetime.to_datetime(self.date)
         start_hour = int(self.start_time)
         start_minute = int((self.start_time - start_hour) * 60)
         start_datetime = start_datetime.replace(hour=start_hour, minute=start_minute, second=0)
         end_datetime = start_datetime + timedelta(hours=self.duration)
         
-        # Проверяем, что время не в прошлом
         now = fields.Datetime.now()
         if start_datetime < now:
             return {
@@ -120,7 +111,6 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                 }
             }
         
-        # Проверяем рабочие часы центра
         if self.sport_center_id:
             start_hour_float = start_hour + start_minute / 60.0
             end_hour_float = start_hour_float + self.duration
@@ -136,14 +126,11 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                     }
                 }
         
-        # Используем sudo() для чтения booking, чтобы обойти правила доступа к trainer_id
         booking = self.booking_id.sudo()
         
-        # Проверяем занятость корта (если выбран новый корт или корт не меняется)
         court_id = self.tennis_court_id.id if self.tennis_court_id else booking.tennis_court_id.id
         
         if court_id:
-            # Ищем пересечения с другими записями на том же корте
             overlapping = self.env["final.training.booking"].search([
                 ("tennis_court_id", "=", court_id),
                 ("id", "!=", booking.id),
@@ -164,7 +151,6 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                     }
                 }
         
-        # Проверяем занятость тренера
         trainer_id = booking.trainer_id.id if booking.trainer_id else False
         if trainer_id:
             overlapping = self.env["final.training.booking"].search([
@@ -189,7 +175,6 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
 
     @api.constrains("duration")
     def _check_duration(self):
-        """Проверка продолжительности"""
         for record in self:
             if record.duration < 1.0:
                 raise ValidationError(_("Минимальная продолжительность тренировки - 1 час."))
@@ -197,33 +182,27 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                 raise ValidationError(_("Продолжительность должна быть кратной 1 часу (1, 2, 3... часов)."))
 
     def action_request_reschedule(self):
-        """Создание запроса на перенос"""
         self.ensure_one()
         if not self.booking_id:
             raise ValidationError(_("Не указана тренировка для переноса."))
         
-        # Используем sudo() для чтения booking, чтобы обойти правила доступа к trainer_id
         booking = self.booking_id.sudo()
         
-        # Проверяем, что тренировка в статусе, который можно перенести
         if booking.state in ("completed", "cancelled"):
             raise ValidationError(
                 _("Нельзя перенести тренировку в статусе '%s'.") % booking._fields["state"]._description_string(self.env)
             )
         
-        # Формируем новое время
         start_hour = int(self.start_time)
         start_minute = int((self.start_time - start_hour) * 60)
         start_datetime = fields.Datetime.to_datetime(self.date)
         start_datetime = start_datetime.replace(hour=start_hour, minute=start_minute, second=0)
         end_datetime = start_datetime + timedelta(hours=self.duration)
         
-        # Проверяем, что время не в прошлом
         now = fields.Datetime.now()
         if start_datetime < now:
             raise ValidationError(_("Нельзя перенести тренировку на время в прошлом."))
         
-        # Проверяем рабочие часы центра
         if self.sport_center_id:
             start_hour_float = start_hour + start_minute / 60.0
             end_hour_float = start_hour_float + self.duration
@@ -236,7 +215,6 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                     ) % (self.sport_center_id.name, self.sport_center_id.work_time_start, self.sport_center_id.work_time_end)
                 )
         
-        # Проверяем занятость корта
         court_id = self.tennis_court_id.id if self.tennis_court_id else booking.tennis_court_id.id
         
         if court_id:
@@ -262,7 +240,6 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                     )
                 )
         
-        # Проверяем занятость тренера
         trainer_id = booking.trainer_id.id if booking.trainer_id else False
         if trainer_id:
             overlapping = self.env["final.training.booking"].search([
@@ -288,9 +265,7 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                     )
                 )
         
-        # Если тренер запрашивает перенос - создаем запрос на одобрение
         if self.is_trainer:
-            # Подготавливаем значения для обновления
             update_vals = {
                 "reschedule_requested": True,
                 "reschedule_requested_by": self.env.user.id,
@@ -301,17 +276,13 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
                 "reschedule_reason": self.reschedule_reason or "",
             }
             
-            # Если тренировка в статусе "confirmed" или "draft", переводим в "pending_approval"
-            # чтобы менеджер видел её в списке запросов на одобрение
             if booking.state in ("confirmed", "draft"):
                 update_vals["state"] = "pending_approval"
             
             booking.write(update_vals)
             
-            # Отправляем уведомление менеджеру
             booking._notify_manager_reschedule_request()
         else:
-            # Если менеджер/директор - переносим сразу
             update_vals = {
                 "start_datetime": start_datetime,
                 "end_datetime": end_datetime,
@@ -320,7 +291,6 @@ class TrainingBookingRescheduleWizard(models.TransientModel):
             if self.tennis_court_id:
                 update_vals["tennis_court_id"] = self.tennis_court_id.id
             
-            # Сбрасываем запрос на перенос, если он был
             if booking.reschedule_requested:
                 update_vals.update({
                     "reschedule_requested": False,

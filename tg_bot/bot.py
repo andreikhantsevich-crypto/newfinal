@@ -30,17 +30,6 @@ dp = Dispatcher()
 
 
 async def call_odoo(path: str, telegram_user_id: int) -> Dict[str, Any]:
-    """
-    Вспомогательная функция для запросов в Odoo.
-
-    Отправляет JSON:
-    {
-        "api_token": ODOO_API_TOKEN,
-        "telegram_user_id": telegram_user_id
-    }
-    """
-
-    # Нормализуем базовый URL (убираем завершающий / если есть)
     base = ODOO_BASE_URL.rstrip("/")
     url = f"{base}{path}"
 
@@ -63,14 +52,6 @@ async def call_odoo(path: str, telegram_user_id: int) -> Dict[str, Any]:
 
 @dp.message(Command("start"))
 async def cmd_start(message: Message) -> None:
-    """
-    Стартовая команда.
-    Сценарий из ТЗ:
-    - Клиент заходит в бота
-    - Бот по telegram_id ищет клиента в Odoo
-    - Если клиент найден -> показываем инфо и доступные команды
-    - Если нет -> просим обратиться к менеджеру и передаём его ID
-    """
     telegram_id = message.from_user.id
 
     try:
@@ -120,7 +101,6 @@ async def cmd_start(message: Message) -> None:
 
 @dp.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    """Краткая справка по командам."""
     await message.answer(
         "Доступные команды:\n"
         "/start — проверка привязки аккаунта и приветствие\n"
@@ -131,7 +111,6 @@ async def cmd_help(message: Message) -> None:
 
 @dp.message(Command("balance"))
 async def cmd_balance(message: Message) -> None:
-    """Показываем баланс клиента, если аккаунт привязан."""
     telegram_id = message.from_user.id
 
     try:
@@ -157,7 +136,6 @@ async def cmd_balance(message: Message) -> None:
 
 @dp.message(Command("my_trainings"))
 async def cmd_my_trainings(message: Message) -> None:
-    """Показываем предстоящие тренировки клиента, если аккаунт привязан."""
     telegram_id = message.from_user.id
 
     try:
@@ -202,7 +180,6 @@ async def cmd_my_trainings(message: Message) -> None:
 
 
 async def main() -> None:
-    """Точка входа для запуска бота."""
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
 

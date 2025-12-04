@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Form view for profit report wizard -->
         <record id="view_final_profit_report_wizard_form" model="ir.ui.view">
             <field name="name">final.profit.report.wizard.form</field>
             <field name="model">final.profit.report.wizard</field>
@@ -31,7 +30,6 @@
             </field>
         </record>
 
-        <!-- Action to open wizard -->
         <record id="action_final_profit_report_wizard" model="ir.actions.act_window">
             <field name="name">Отчет по прибыли в разрезе СЦ</field>
             <field name="res_model">final.profit.report.wizard</field>

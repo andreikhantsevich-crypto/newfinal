@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -63,7 +62,6 @@ class FinalBalanceTransaction(models.Model):
 
     @api.depends("partner_id", "transaction_type", "amount", "date")
     def _compute_display_name(self):
-        """Генерация отображаемого имени транзакции"""
         for record in self:
             type_name = dict(record._fields["transaction_type"].selection).get(
                 record.transaction_type, ""
@@ -75,7 +73,6 @@ class FinalBalanceTransaction(models.Model):
 
     @api.constrains("amount")
     def _check_amount_positive(self):
-        """Проверка что сумма положительная"""
         for record in self:
             if record.amount <= 0:
                 raise ValidationError(
@@ -83,23 +80,20 @@ class FinalBalanceTransaction(models.Model):
                 )
 
     def action_deposit(self, partner_id, amount, description=""):
-        """Метод для создания транзакции пополнения"""
-        self.create({
-            "partner_id": partner_id,
-            "transaction_type": "deposit",
-            "amount": amount,
-            "date": fields.Datetime.now(),
-            "description": description,
-        })
-        # Обновляем баланс клиента (используем sudo() для обхода прав доступа)
+        self.create(
+            {
+                "partner_id": partner_id,
+                "transaction_type": "deposit",
+                "amount": amount,
+                "date": fields.Datetime.now(),
+                "description": description,
+            }
+        )
         partner = self.env["res.partner"].sudo().browse(partner_id)
         partner.balance += amount
 
     def action_withdrawal(self, partner_id, amount, booking_id=None, description=""):
-        """Метод для создания транзакции списания"""
         partner = self.env["res.partner"].sudo().browse(partner_id)
-        
-        # Проверяем достаточность баланса
         if partner.balance < amount:
             raise ValidationError(
                 _(

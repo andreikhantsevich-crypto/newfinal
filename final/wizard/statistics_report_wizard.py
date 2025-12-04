@@ -25,7 +25,6 @@ class FinalStatisticsReportWizard(models.TransientModel):
         help="Оставьте пустым, чтобы учитывать все центры.",
     )
 
-    # Самый прибыльный тренер
     most_profitable_trainer_id = fields.Many2one(
         "hr.employee",
         string="Самый прибыльный тренер",
@@ -37,7 +36,6 @@ class FinalStatisticsReportWizard(models.TransientModel):
         currency_field="currency_id",
     )
 
-    # Самый посещаемый вид тренировки
     most_popular_training_type_id = fields.Many2one(
         "final.training.type",
         string="Самый посещаемый вид тренировки",
@@ -48,7 +46,6 @@ class FinalStatisticsReportWizard(models.TransientModel):
         readonly=True,
     )
 
-    # Самый активный клиент
     most_active_client_id = fields.Many2one(
         "res.partner",
         string="Самый активный клиент",
@@ -68,29 +65,23 @@ class FinalStatisticsReportWizard(models.TransientModel):
 
     @api.onchange("date_from", "date_to", "center_ids")
     def _onchange_compute_statistics(self):
-        """Пересчитывает статистику при изменении параметров."""
         for wizard in self:
             wizard._compute_statistics()
 
     def action_compute_statistics(self):
-        """Публичный метод для кнопки 'Обновить'."""
         self._compute_statistics()
         return False
 
     def _compute_statistics(self):
-        """Рассчитывает показатели по требованиям пп.33–36 ТЗ."""
         self.ensure_one()
 
-        # Подготовка домена по датам и СЦ
         domain = [("state", "=", "completed")]
 
         if self.date_from:
-            # Считаем от начала дня date_from
             date_from_dt = fields.Datetime.to_datetime(self.date_from)
             domain.append(("start_datetime", ">=", date_from_dt))
 
         if self.date_to:
-            # До конца дня date_to
             date_to_dt = fields.Datetime.to_datetime(self.date_to) + timedelta(days=1)
             domain.append(("start_datetime", "<", date_to_dt))
 
@@ -100,7 +91,6 @@ class FinalStatisticsReportWizard(models.TransientModel):
         Booking = self.env["final.training.booking"].sudo()
         bookings = Booking.search(domain)
 
-        # 1. Самый прибыльный тренер (сумма profit_amount по тренеру)
         trainer_profit = {}
         for b in bookings:
             if not b.trainer_id:
@@ -119,7 +109,6 @@ class FinalStatisticsReportWizard(models.TransientModel):
             self.most_profitable_trainer_id = False
             self.most_profitable_trainer_profit = 0.0
 
-        # 2. Самый посещаемый вид тренировки (количество тренировок по виду)
         type_counts = {}
         for b in bookings:
             if not b.training_type_id:
@@ -138,7 +127,6 @@ class FinalStatisticsReportWizard(models.TransientModel):
             self.most_popular_training_type_id = False
             self.most_popular_training_type_count = 0
 
-        # 3. Самый активный клиент (количество тренировок по клиенту)
         client_counts = {}
         for b in bookings:
             for client in b.client_ids:

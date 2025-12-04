@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -6,7 +5,6 @@ from odoo.exceptions import ValidationError
 class AttachTrainerWizard(models.TransientModel):
     _name = "final.attach.trainer.wizard"
     _description = "Мастер привязки тренера к спортивному центру"
-
     center_id = fields.Many2one(
         "final.sport.center",
         string="Спортивный центр",
@@ -19,8 +17,6 @@ class AttachTrainerWizard(models.TransientModel):
         compute="_compute_already_attached_centers",
         store=False,
     )
-    
-    # Ставки за каждый вид тренировки
     individual_rate = fields.Monetary(
         string="Ставка за индивидуальную тренировку",
         currency_field="currency_id",
@@ -48,7 +44,6 @@ class AttachTrainerWizard(models.TransientModel):
 
     @api.depends("center_id")
     def _compute_already_attached_centers(self):
-        """Вычисляет уже привязанные центры текущего тренера"""
         for record in self:
             trainer_employee = self.env.user.employee_id
             if trainer_employee:
@@ -58,7 +53,6 @@ class AttachTrainerWizard(models.TransientModel):
 
     @api.model
     def default_get(self, fields_list):
-        """Устанавливает значения по умолчанию"""
         res = super().default_get(fields_list)
         trainer_employee = self.env.user.employee_id
         if not trainer_employee:
@@ -81,7 +75,6 @@ class AttachTrainerWizard(models.TransientModel):
         return res
 
     def action_attach_trainer(self):
-        """Привязывает тренера к СЦ и создает ставки"""
         self.ensure_one()
         trainer_employee = self.env.user.employee_id
         

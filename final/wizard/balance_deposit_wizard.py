@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -44,13 +43,11 @@ class BalanceDepositWizard(models.TransientModel):
 
     @api.depends("amount", "current_balance")
     def _compute_new_balance(self):
-        """Вычисляет баланс после пополнения"""
         for record in self:
             record.new_balance = record.current_balance + record.amount
 
     @api.model
     def default_get(self, fields_list):
-        """Устанавливает значения по умолчанию"""
         res = super().default_get(fields_list)
         
         # Если клиент передан в контексте
@@ -61,7 +58,6 @@ class BalanceDepositWizard(models.TransientModel):
 
     @api.constrains("amount")
     def _check_amount_positive(self):
-        """Проверка что сумма положительная"""
         for record in self:
             if record.amount <= 0:
                 raise ValidationError(
@@ -69,7 +65,6 @@ class BalanceDepositWizard(models.TransientModel):
                 )
 
     def action_deposit(self):
-        """Пополняет баланс клиента"""
         self.ensure_one()
         
         if not self.partner_id:
@@ -78,11 +73,8 @@ class BalanceDepositWizard(models.TransientModel):
         if self.amount <= 0:
             raise ValidationError(_("Сумма пополнения должна быть положительным числом."))
         
-        # Пополняем баланс
         description = self.description or _("Пополнение баланса")
         self.partner_id.deposit_balance(self.amount, description)
-        
-        # Закрываем форму wizard'а
         return {
             "type": "ir.actions.act_window_close",
         }

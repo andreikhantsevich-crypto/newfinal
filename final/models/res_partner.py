@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -51,28 +50,18 @@ class ResPartner(models.Model):
 
     @api.constrains("balance")
     def _check_balance_not_negative(self):
-        """Проверка что баланс не отрицательный (опционально, можно убрать если разрешены отрицательные балансы)"""
-        # Эта проверка может быть отключена, если нужно разрешить отрицательные балансы
-        # для record in self:
-        #     if record.balance < 0:
-        #         raise ValidationError(
-        #             _("Баланс клиента '%s' не может быть отрицательным.") % record.name
-        #         )
         pass
 
     @api.constrains("telegram_user_id")
     def _check_telegram_user_id(self):
-        """Проверка корректности и уникальности Telegram User ID"""
         for record in self:
             if record.telegram_user_id:
-                # ID должен быть положительным числом
                 if record.telegram_user_id <= 0:
                     raise ValidationError(
                         _("Telegram User ID для клиента '%s' должен быть положительным числом.")
                         % (record.name,)
                     )
 
-                # Уникальность в системе
                 duplicate = (
                     self.search(
                         [
@@ -94,11 +83,9 @@ class ResPartner(models.Model):
                     )
 
     def get_balance(self):
-        """Получить текущий баланс клиента"""
         return self.balance
 
     def deposit_balance(self, amount, description=""):
-        """Пополнить баланс клиента"""
         if amount <= 0:
             raise ValidationError(_("Сумма пополнения должна быть положительным числом."))
         
@@ -108,7 +95,6 @@ class ResPartner(models.Model):
         return True
 
     def withdraw_balance(self, amount, booking_id=None, description=""):
-        """Списать с баланса клиента"""
         if amount <= 0:
             raise ValidationError(_("Сумма списания должна быть положительным числом."))
         
@@ -118,7 +104,6 @@ class ResPartner(models.Model):
         return True
 
     def action_open_balance_deposit_wizard(self):
-        """Открывает wizard пополнения баланса"""
         self.ensure_one()
         return {
             "type": "ir.actions.act_window",

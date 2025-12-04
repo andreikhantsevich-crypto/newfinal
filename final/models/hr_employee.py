@@ -6,7 +6,6 @@ _logger = logging.getLogger(__name__)
 
 
 class HrEmployeePublic(models.Model):
-    """Расширение hr.employee.public для доступа к нашим полям"""
     _inherit = "hr.employee.public"
     
     sport_center_id = fields.Many2one(
@@ -40,11 +39,9 @@ class HrEmployee(models.Model):
     )
     is_final_trainer = fields.Boolean(
         string="Тренер СЦ",
-        help="Отметьте, если сотрудник является тренером в сети спортивных центров.",
     )
     is_final_manager = fields.Boolean(
         string="Менеджер СЦ",
-        help="Отметьте, если сотрудник является менеджером спортивного центра.",
     )
     center_trainer_ids = fields.One2many(
         "final.center.trainer",
@@ -106,7 +103,6 @@ class HrEmployee(models.Model):
 
     @api.depends("is_final_manager")
     def _compute_manager_center_ids(self):
-        """Вычисляет СЦ, где сотрудник является менеджером"""
         SportCenter = self.env["final.sport.center"]
         for employee in self:
             if employee.is_final_manager:
@@ -118,14 +114,9 @@ class HrEmployee(models.Model):
     
     @api.model
     def action_open_trainer_cabinet(self):
-        """Открыть личный кабинет тренера"""
-        _logger.info("=== action_open_trainer_cabinet called ===")
-        _logger.info("User: %s", self.env.user.name)
         employee = self.env.user.employee_id
-        _logger.info("Employee: %s (id=%s)", employee.name if employee else 'None', employee.id if employee else 'None')
         
         if not employee:
-            _logger.warning("No employee found for user")
             return {
                 'type': 'ir.actions.client',
                 'tag': 'display_notification',

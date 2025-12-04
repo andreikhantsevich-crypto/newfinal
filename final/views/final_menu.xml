@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Корневое меню для директора и менеджера -->
         <menuitem id="menu_final_root"
                   name="Final"
                   sequence="10"
@@ -11,7 +10,6 @@
             <field name="action" eval="False"/>
         </record>
         
-        <!-- View формы личного кабинета тренера -->
         <record id="view_my_trainer_cabinet_form" model="ir.ui.view">
             <field name="name">my.trainer.cabinet.form</field>
             <field name="model">hr.employee</field>
@@ -68,7 +66,6 @@
             </field>
         </record>
 
-        <!-- View списка для личного кабинета тренера -->
         <record id="view_trainer_my_cabinet_list" model="ir.ui.view">
             <field name="name">trainer.my.cabinet.list</field>
             <field name="model">hr.employee</field>
@@ -83,7 +80,6 @@
             </field>
         </record>
         
-        <!-- Действие для личного кабинета тренера -->
         <record id="action_trainer_my_cabinet_v4" model="ir.actions.act_window">
             <field name="name">Личный кабинет</field>
             <field name="res_model">hr.employee</field>
@@ -93,7 +89,6 @@
             <field name="domain">[('user_id', '=', uid)]</field>
         </record>
 
-        <!-- Корневое меню для тренера -->
         <menuitem id="menu_final_root_trainer"
                   name="Final"
                   sequence="10"
@@ -110,7 +105,6 @@
                   sequence="10"
                   groups="final.group_final_director"/>
         
-        <!-- Явно обновляем меню, чтобы скрыть его для менеджера -->
         <record id="menu_final_orders" model="ir.ui.menu">
             <field name="groups_id" eval="[(6, 0, [ref('final.group_final_director')])]"/>
         </record>
@@ -140,13 +134,10 @@
                   sequence="17"
                   groups="final.group_final_manager,final.group_final_trainer"/>
         
-        <!-- Действие для доступа к клиентам -->
         <record id="action_final_partners" model="ir.actions.act_window">
             <field name="name">Клиенты</field>
             <field name="res_model">res.partner</field>
             <field name="view_mode">list,form</field>
-            <!-- Domain будет ограничен через record rule для менеджера -->
-            <!-- Для директора показываем всех клиентов с Telegram ID -->
             <field name="domain">[('is_company', '=', False), ('telegram_user_id', '!=', False)]</field>
             <field name="context">
                 {
@@ -190,7 +181,6 @@
                   action="action_create_trainer_wizard"
                   sequence="26"
                   groups="final.group_final_director"/>
-        <!-- Меню для тренера -->
         <menuitem id="menu_final_trainer_personal_cabinet"
                   name="Личный кабинет"
                   parent="menu_final_root_trainer"
@@ -252,13 +242,11 @@
             <field name="parent_id" ref="menu_final_root_trainer"/>
         </record>
         
-        <!-- Убираем Ставки для директора -->
         <record id="menu_final_trainer_rates" model="ir.ui.menu">
             <field name="groups_id" eval="[(6, 0, [])]"/>
             <field name="active" eval="False"/>
         </record>
 
-        <!-- Меню отчетов для директора -->
         <menuitem id="menu_final_reports"
                   name="Отчеты"
                   parent="menu_final_root"

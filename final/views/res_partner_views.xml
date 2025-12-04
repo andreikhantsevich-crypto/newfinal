@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Упрощённая форма клиента для модуля Final -->
         <record id="view_final_partner_simple_form" model="ir.ui.view">
             <field name="name">res.partner.form.final.simple</field>
             <field name="model">res.partner</field>
             <field name="priority">20</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
-                <!-- Заменяем основную часть формы более простой для наших клиентов -->
                 <xpath expr="//sheet/group" position="replace">
                     <group string="Основная информация">
                         <group>
@@ -24,13 +22,11 @@
             </field>
         </record>
 
-        <!-- Расширение формы клиента (res.partner) баланс и Telegram -->
         <record id="view_partner_form_final_balance" model="ir.ui.view">
             <field name="name">res.partner.form.final.balance</field>
             <field name="model">res.partner</field>
             <field name="inherit_id" ref="base.view_partner_form"/>
             <field name="arch" type="xml">
-                <!-- Добавляем вкладку с балансом и историей транзакций -->
                 <xpath expr="//notebook" position="inside">
                     <page string="Баланс и транзакции" name="balance_tab" groups="final.group_final_manager,final.group_final_director">
                         <group>
@@ -60,12 +56,10 @@
                     </page>
                 </xpath>
                 
-                <!-- Добавляем поле баланса в основную форму (только для менеджера/директора) -->
                 <xpath expr="//field[@name='category_id']" position="after">
                     <field name="balance" widget="monetary" groups="final.group_final_manager,final.group_final_director" readonly="1"/>
                     <field name="balance_currency_id" groups="final.group_final_manager,final.group_final_director" 
                            options="{'no_create': True, 'no_create_edit': True}" readonly="1"/>
-                    <!-- Поля для привязки Telegram-аккаунта клиента -->
                     <field name="telegram_user_id" groups="final.group_final_manager,final.group_final_director"/>
                     <field name="telegram_username" groups="final.group_final_manager,final.group_final_director"/>
                     <label for="telegram_user_id" string="Инструкция по привязке Telegram" class="oe_inline"
@@ -81,21 +75,6 @@
             </field>
         </record>
 
-        <!-- Расширение списка клиентов (res.partner) -->
-        <!-- Временно отключено, так как структура базового view может отличаться -->
-        <!-- Баланс отображается в форме клиента, что достаточно для функционала -->
-        <!--
-        <record id="view_partner_tree_final_balance" model="ir.ui.view">
-            <field name="name">res.partner.list.final.balance</field>
-            <field name="model">res.partner</field>
-            <field name="inherit_id" ref="base.view_partner_tree"/>
-            <field name="arch" type="xml">
-                <xpath expr="//list" position="inside">
-                    <field name="balance" widget="monetary" groups="final.group_final_manager,final.group_final_director"/>
-                </xpath>
-            </field>
-        </record>
-        -->
     </data>
 </odoo>
 

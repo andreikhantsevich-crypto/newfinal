@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
 {
     'name': 'final',
     'version': '18.0.0.0.0',
     'category': 'Custom',
     'summary': 'Пустой модуль для дальнейшей разработки.',
-    'description': """
-        Модуль final.
-        =============
-
-        Заготовка для реализации требований проекта.
-    """,
+    'description': "",
     'author': 'final',
     'website': '',
     'depends': ['base', 'hr', 'calendar', 'mail'],

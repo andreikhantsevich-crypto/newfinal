@@ -33,24 +33,17 @@ class FinalProfitReportWizard(models.TransientModel):
     )
 
     def action_print_pdf(self):
-        """Генерирует PDF отчет по прибыли в разрезе СЦ и скачивает его."""
         self.ensure_one()
         report = self.env.ref('final.action_report_profit_by_centers')
-        # Используем стандартный метод report_action
         action = report.report_action(self, config=False)
-        # Добавляем параметр для автоматического скачивания через URL
-        # В Odoo для скачивания PDF добавляем параметр download=1 в контекст
         if isinstance(action, dict):
-            # Изменяем target на download для автоматического скачивания
             action['target'] = 'download'
-            # Также можно модифицировать URL если он есть
             if 'url' in action and 'download' not in action['url']:
                 separator = '&' if '?' in action['url'] else '?'
                 action['url'] = f"{action['url']}{separator}download=1"
         return action
 
     def _get_profit_data(self):
-        """Получает данные о прибыли для отчета."""
         self.ensure_one()
         
         # Подготовка домена по датам и СЦ

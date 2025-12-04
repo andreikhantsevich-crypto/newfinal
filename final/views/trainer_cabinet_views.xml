@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Представление списка СЦ для кабинета тренера -->
         <record id="view_trainer_cabinet_sport_center_list" model="ir.ui.view">
             <field name="name">trainer.cabinet.sport.center.list</field>
             <field name="model">final.sport.center</field>
@@ -17,7 +16,6 @@
             </field>
         </record>
 
-        <!-- Форма СЦ для тренера -->
         <record id="view_trainer_cabinet_sport_center_form" model="ir.ui.view">
             <field name="name">trainer.cabinet.sport.center.form</field>
             <field name="model">final.sport.center</field>

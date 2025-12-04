@@ -27,8 +27,6 @@ class FinalCenterTrainer(models.Model):
         required=True,
         domain="[('is_final_manager', '=', False)]",
     )
-    
-    # Computed поля для ставок тренера
     individual_rate = fields.Monetary(
         string="Ставка за индивидуальную тренировку (за чел.)",
         compute="_compute_trainer_rates",
@@ -91,7 +89,6 @@ class FinalCenterTrainer(models.Model):
             if not employee:
                 continue
             if not employee.is_final_trainer:
-                # Используем sudo() для обновления employee, если нет прав
                 employee.sudo().write({"is_final_trainer": True})
 
     def _cleanup_old_links(self, links):
@@ -114,13 +111,10 @@ class FinalCenterTrainer(models.Model):
                 continue
             if has_other_links:
                 continue
-            # Используем sudo() для обновления employee
             employee.sudo().write({"is_final_trainer": False})
 
     @api.depends("employee_id", "sport_center_id")
     def _compute_trainer_rates(self):
-        """Вычисляет ставки тренера за каждый вид тренировки"""
-        # Используем sudo для доступа к ставкам тренера
         TrainerRate = self.env["final.trainer.rate"].sudo()
         TrainingType = self.env["final.training.type"]
         

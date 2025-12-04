@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- View формы wizard отклонения запроса на перенос тренировки -->
         <record id="view_training_booking_reject_reschedule_wizard_form" model="ir.ui.view">
             <field name="name">final.training.booking.reject.reschedule.wizard.form</field>
             <field name="model">final.training.booking.reject.reschedule.wizard</field>

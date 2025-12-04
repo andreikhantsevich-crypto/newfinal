@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Форма wizard пополнения баланса -->
         <record id="view_balance_deposit_wizard_form" model="ir.ui.view">
             <field name="name">final.balance.deposit.wizard.form</field>
             <field name="model">final.balance.deposit.wizard</field>
@@ -33,7 +32,6 @@
             </field>
         </record>
 
-        <!-- Действие для открытия wizard пополнения баланса -->
         <record id="action_balance_deposit_wizard" model="ir.actions.act_window">
             <field name="name">Пополнить баланс</field>
             <field name="res_model">final.balance.deposit.wizard</field>

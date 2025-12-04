@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Views for trainer schedule -->
         <record id="view_final_trainer_schedule_calendar" model="ir.ui.view">
             <field name="name">final.trainer.schedule.calendar</field>
             <field name="model">final.trainer.schedule</field>
@@ -91,7 +90,6 @@
             </field>
         </record>
 
-        <!-- Views for trainer rates -->
         <record id="view_final_trainer_rate_tree" model="ir.ui.view">
             <field name="name">final.trainer.rate.tree</field>
             <field name="model">final.trainer.rate</field>
@@ -160,7 +158,6 @@
             </field>
         </record>
 
-        <!-- Форма личного кабинета тренера -->
         <record id="view_trainer_personal_cabinet_form" model="ir.ui.view">
             <field name="name">trainer.personal.cabinet.form</field>
             <field name="model">hr.employee</field>
@@ -208,7 +205,6 @@
             </field>
         </record>
 
-        <!-- Список для личного кабинета тренера (показывает только текущего) -->
         <record id="view_trainer_personal_cabinet_list" model="ir.ui.view">
             <field name="name">trainer.personal.cabinet.list</field>
             <field name="model">hr.employee</field>
@@ -221,7 +217,6 @@
             </field>
         </record>
 
-        <!-- Действие для открытия личного кабинета тренера -->
         <record id="action_trainer_my_cabinet" model="ir.actions.act_window">
             <field name="name">Личный кабинет</field>
             <field name="res_model">hr.employee</field>

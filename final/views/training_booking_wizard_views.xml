@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- View формы wizard записи на тренировку -->
         <record id="view_training_booking_wizard_form" model="ir.ui.view">
             <field name="name">final.training.booking.wizard.form</field>
             <field name="model">final.training.booking.wizard</field>
@@ -109,7 +108,6 @@
             </field>
         </record>
 
-        <!-- Action для wizard записи на тренировку -->
         <record id="action_training_booking_wizard" model="ir.actions.act_window">
             <field name="name">Записаться на тренировку</field>
             <field name="res_model">final.training.booking.wizard</field>

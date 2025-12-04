@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- Поиск повторяющихся тренировок -->
         <record id="view_final_training_recurring_search" model="ir.ui.view">
             <field name="name">final.training.recurring.search</field>
             <field name="model">final.training.recurring</field>
@@ -39,7 +38,6 @@
             </field>
         </record>
 
-        <!-- Список повторяющихся тренировок -->
         <record id="view_final_training_recurring_list" model="ir.ui.view">
             <field name="name">final.training.recurring.list</field>
             <field name="model">final.training.recurring</field>
@@ -64,7 +62,6 @@
             </field>
         </record>
 
-        <!-- Форма повторяющейся тренировки -->
         <record id="view_final_training_recurring_form" model="ir.ui.view">
             <field name="name">final.training.recurring.form</field>
             <field name="model">final.training.recurring</field>
@@ -163,7 +160,6 @@
             </field>
         </record>
 
-        <!-- Действие для открытия списка повторяющихся тренировок -->
         <record id="action_final_training_recurring" model="ir.actions.act_window">
             <field name="name">Повторяющиеся тренировки</field>
             <field name="res_model">final.training.recurring</field>

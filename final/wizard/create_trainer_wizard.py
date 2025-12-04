@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -6,7 +5,6 @@ from odoo.exceptions import ValidationError
 class CreateTrainerWizard(models.TransientModel):
     _name = "final.create.trainer.wizard"
     _description = "Мастер создания тренера"
-
     trainer_name = fields.Char(
         string="Имя тренера",
         required=True,
